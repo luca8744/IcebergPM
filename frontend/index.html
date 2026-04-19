@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IcebergPM | Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="glass-card auth-form">
+            <h1 class="logo" style="text-align: center; margin-bottom: 2rem;">Iceberg<span>PM</span></h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required autocomplete="current-password">
+                </div>
+                <div id="errorMessage" style="color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem; display: none;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Accedi</button>
+            </form>
+            <div style="text-align: center; margin-top: 2rem; font-size: 0.8rem; color: var(--text-secondary);">
+                Versione: <span id="appVersion">...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const data = await auth.login(username, password);
+                if (data.role === 'CLIENT') {
+                    window.location.href = 'client.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                errorMessage.textContent = 'Credenziali non valide';
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // Fetch version
+        auth.getVersion().then(v => {
+            document.getElementById('appVersion').textContent = v;
+        });
+
+        // Redirect if already logged in
+        if (auth.isLoggedIn()) {
+            const user = auth.getUser();
+            if (user.role === 'CLIENT') window.location.href = 'client.html';
+            else window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

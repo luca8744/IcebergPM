@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IcebergPM | Area Cliente</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">Iceberg<span>PM</span> <small style="font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 5px;" id="appVersion">v...</small></div>
+        <div class="header-controls">
+            <span class="user-info" id="userInfo"></span>
+            <button class="btn" style="background: var(--danger);" onclick="auth.logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>I Tuoi Progetti</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi lo stato di avanzamento dei tuoi lavori.</p>
+
+        <div id="projectsGrid" class="projects-grid">
+            <!-- Caricati via JS -->
+        </div>
+
+        <div id="projectDetail" style="display: none; margin-top: 3rem;">
+            <h2 id="currentProjectTitle" style="margin-bottom: 2rem;">Dettagli Progetto</h2>
+            
+            <div class="glass-card" style="padding: 0;">
+                <div id="itemsList">
+                    <!-- Items caricati via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        if (!auth.isLoggedIn()) window.location.href = 'index.html';
+        const user = auth.getUser();
+        document.getElementById('userInfo').textContent = `${user.username} (Cliente)`;
+
+        auth.getVersion().then(v => {
+            document.getElementById('appVersion').textContent = `v${v}`;
+        });
+
+        async function loadProjects() {
+            const res = await auth.fetch('/projects/');
+            const projects = await res.json();
+            const grid = document.getElementById('projectsGrid');
+            grid.innerHTML = projects.map(p => `
+                <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
+                    <h3>${p.name}</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">Vedi dettagli e task...</p>
+                </div>
+            `).join('');
+        }
+
+        async function loadProjectDetail(id, name) {
+            document.getElementById('currentProjectTitle').textContent = name;
+            document.getElementById('projectDetail').style.display = 'block';
+            
+            const res = await auth.fetch(`/projects/${id}`);
+            const project = await res.json();
+            
+            const list = document.getElementById('itemsList');
+            if (project.items.length === 0) {
+                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun aggiornamento per ora.</div>';
+            } else {
+                list.innerHTML = project.items.map(item => `
+                    <div class="item-row">
+                        <div>
+                            <div style="font-weight: 600;">${item.title}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Stiamo lavorando su questo...'}</div>
+                        </div>
+                        <div class="status-badge status-${item.status}">${item.status}</div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        loadProjects();
+    </script>
+</body>
+</html>

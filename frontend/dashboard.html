@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IcebergPM | Dashboard Interna</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .header-controls { display: flex; gap: 1rem; align-items: center; }
+        .user-info { color: var(--text-secondary); font-size: 0.9rem; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content { max-width: 500px; width: 90%; }
+        .badge-internal { background: rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px;}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Iceberg<span>PM</span> <small style="font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 5px;" id="appVersion">v...</small></div>
+        <div class="header-controls">
+            <span class="user-info" id="userInfo"></span>
+            <button class="btn btn-primary" onclick="showNewProjectModal()">Nuovo Progetto</button>
+            <button class="btn" style="background: var(--danger);" onclick="auth.logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Dashboard Interna</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi tutto quello che sta sotto la superficie.</p>
+
+        <div id="projectsGrid" class="projects-grid">
+            <!-- Progetti caricati via JS -->
+        </div>
+
+        <div id="projectDetail" style="display: none; margin-top: 3rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 id="currentProjectTitle">Dettagli Progetto</h2>
+                <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task/Bug</button>
+            </div>
+            
+            <div class="glass-card" style="padding: 0;">
+                <div id="itemsList">
+                    <!-- Items caricati via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Nuovo Progetto -->
+    <div id="projectModal" class="modal">
+        <div class="glass-card modal-content">
+            <h3>Nuovo Progetto</h3>
+            <form id="projectForm" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label>Nome Progetto</label>
+                    <input type="text" id="projectName" required>
+                </div>
+                <div class="form-group">
+                    <label>Cliente (User ID)</label>
+                    <input type="number" id="projectClient" required placeholder="Es. 2">
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" class="btn" onclick="hideModals()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Nuovo Item -->
+    <div id="itemModal" class="modal">
+        <div class="glass-card modal-content" style="max-width: 600px;">
+            <h3>Nuovo Task / Bug</h3>
+            <form id="itemForm" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label>Titolo</label>
+                    <input type="text" id="itemTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Descrizione (Pubblica)</label>
+                    <textarea id="itemDesc"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Priorità Interna</label>
+                        <select id="itemPriority">
+                            <option value="LOW">Bassa</option>
+                            <option value="MEDIUM" selected>Media</option>
+                            <option value="HIGH">Alta</option>
+                            <option value="CRITICAL">Critica</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estima Ore</label>
+                        <input type="number" step="0.5" id="itemHours">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Note Interne (Private)</label>
+                    <textarea id="itemInternalNotes"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary">Crea</button>
+                    <button type="button" class="btn" onclick="hideModals()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // JS per dashboard.html
+        if (!auth.isLoggedIn()) window.location.href = 'index.html';
+        const user = auth.getUser();
+        if (user.role === 'CLIENT') window.location.href = 'client.html';
+
+        document.getElementById('userInfo').textContent = `${user.username} (${user.role})`;
+
+        auth.getVersion().then(v => {
+            document.getElementById('appVersion').textContent = `v${v}`;
+        });
+
+        let currentProjectId = null;
+
+        async function loadProjects() {
+            const res = await auth.fetch('/projects/');
+            const projects = await res.json();
+            const grid = document.getElementById('projectsGrid');
+            grid.innerHTML = projects.map(p => `
+                <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
+                    <h3>${p.name}</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">ID Cliente: ${p.client_id}</p>
+                </div>
+            `).join('');
+        }
+
+        async function loadProjectDetail(id, name) {
+            currentProjectId = id;
+            document.getElementById('currentProjectTitle').textContent = name;
+            document.getElementById('projectDetail').style.display = 'block';
+            
+            const res = await auth.fetch(`/projects/${id}`);
+            const project = await res.json();
+            
+            const list = document.getElementById('itemsList');
+            if (project.items.length === 0) {
+                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun item trovato.</div>';
+            } else {
+                list.innerHTML = project.items.map(item => `
+                    <div class="item-row">
+                        <div>
+                            <div style="font-weight: 600;">
+                                ${item.title} 
+                                <span class="badge-internal">PR: ${item.internal_priority}</span>
+                                <span class="badge-internal">H: ${item.estimated_hours || 0}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Nessuna descrizione'}</div>
+                            <div style="font-size: 0.75rem; color: #a78bfa; margin-top: 4px;">Privato: ${item.internal_notes || '-'}</div>
+                        </div>
+                        <div class="status-badge status-${item.status}">${item.status}</div>
+                    </div>
+                `).join('');
+            }
+            
+            // Scroll to detail
+            document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Modals logic
+        function showNewProjectModal() { document.getElementById('projectModal').style.display = 'flex'; }
+        function showNewItemModal() { document.getElementById('itemModal').style.display = 'flex'; }
+        function hideModals() { 
+            document.getElementById('projectModal').style.display = 'none'; 
+            document.getElementById('itemModal').style.display = 'none';
+        }
+
+        document.getElementById('projectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('projectName').value;
+            const client_id = document.getElementById('projectClient').value;
+            await auth.fetch('/projects/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, client_id })
+            });
+            hideModals();
+            loadProjects();
+        });
+
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('itemTitle').value;
+            const description = document.getElementById('itemDesc').value;
+            const internal_priority = document.getElementById('itemPriority').value;
+            const estimated_hours = document.getElementById('itemHours').value;
+            const internal_notes = document.getElementById('itemInternalNotes').value;
+
+            await auth.fetch('/items/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    title, description, internal_priority, 
+                    estimated_hours, internal_notes, 
+                    project_id: currentProjectId 
+                })
+            });
+            hideModals();
+            loadProjectDetail(currentProjectId, document.getElementById('currentProjectTitle').textContent);
+        });
+
+        loadProjects();
+    </script>
+</body>
+</html>
