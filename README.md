@@ -12,6 +12,7 @@ Fino ad ora sono stati implementati i seguenti componenti core:
 - **Autenticazione**: Sistema basato su JWT (JSON Web Tokens) con hashing delle password (bcrypt).
 - **Gestione Ruoli**: Supporto per Admin, Team e Client.
 - **API REST**: Endpoint per la gestione di Progetti e Item (attività/costi) con logica di visibilità "public/internal".
+- **Gestione Database**: Strumenti per backup (export), restore (import) e configurazione remota (DATABASE_URL) direttamente dall'app.
 - **Versioning**: Sistema di revisione integrato (v0.1.0) visibile in tutta la UI.
 
 ### Frontend (Static HTML/JS)
