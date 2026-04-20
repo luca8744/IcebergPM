@@ -19,7 +19,7 @@ def build():
             print(f"Rossa cartella vecchia: {d}")
 
     # Configurazione PyInstaller
-    # --onedir: Crea una cartella (più veloce)
+    # --onefile: Crea un unico file eseguibile
     # --add-data: Include la cartella frontend
     # --name: Nome del file exe
     # --clean: Pulisce la cache
@@ -27,7 +27,7 @@ def build():
     params = [
         'run.py',
         '--name', name,
-        '--onedir',
+        '--onefile',
         '--add-data', f'{frontend_dir};frontend',
         '--clean',
         '--noconfirm',

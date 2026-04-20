@@ -77,8 +77,8 @@ Al primo avvio, viene creato un utente amministratore predefinito:
 Il progetto include una serie di script di supporto in `backend/scripts/`:
 
 - `migrate_v3.py`: Gestisce l'aggiunta di campi (es. `is_private`) al database esistente.
-- `seed_client.py`: Script per popolare il database con dati di test (spostabile in scripts).
 - `cleanup_database.py`: Utility per la pulizia dei dati.
+- `import_csv.py`: Script per l'importazione massiva di dati.
 
 ---
 
