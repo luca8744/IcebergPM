@@ -1,7 +1,6 @@
 import uvicorn
 import os
 import sys
-from backend.app.main import app
 
 if __name__ == "__main__":
     # Ensure current directory is the project root
@@ -13,7 +12,7 @@ if __name__ == "__main__":
     is_frozen = getattr(sys, 'frozen', False)
     
     uvicorn.run(
-        app, 
+        "backend.app.main:app", 
         host="0.0.0.0", 
         port=8000, 
         reload=not is_frozen
