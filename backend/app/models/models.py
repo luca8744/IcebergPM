@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime, Float, Boolean, Text
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime, Float, Boolean, Text, Table
 from sqlalchemy.orm import relationship
 from ..database import Base
 import enum
@@ -28,6 +28,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.CLIENT)
+    reference_client = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
 
     projects = relationship("Project", back_populates="client")
@@ -48,6 +49,23 @@ class Project(Base):
     def items_count(self):
         return len(self.items)
 
+# Association table for Many-to-Many relationship between Items and Tags
+item_tags = Table(
+    "item_tags",
+    Base.metadata,
+    Column("item_id", Integer, ForeignKey("items.id"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True),
+)
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    color = Column(String, default="#3b82f6") # Default blue
+
+    items = relationship("Item", secondary=item_tags, back_populates="tags")
+
 class Item(Base):
     __tablename__ = "items"
 
@@ -61,8 +79,29 @@ class Item(Base):
 
     # Internal fields
     internal_notes = Column(Text, nullable=True)
-    estimated_hours = Column(Float, nullable=True)
-    actual_hours = Column(Float, nullable=True)
     internal_priority = Column(Enum(ItemPriority), default=ItemPriority.MEDIUM)
 
+    # Requirements & IDs
+    is_private = Column(Boolean, default=False)
+    hlr = Column(Text, nullable=True)
+    srs = Column(Text, nullable=True)
+    tp = Column(Text, nullable=True)
+    external_id = Column(String, nullable=True)
+    unique_id = Column(String, nullable=True)
+
     project = relationship("Project", back_populates="items")
+    tags = relationship("Tag", secondary=item_tags, back_populates="items")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    username = Column(String) # Cache username
+    action = Column(String) # CREATE, UPDATE, DELETE, etc.
+    entity_type = Column(String) # USER, PROJECT, ITEM, TAG, DB
+    entity_id = Column(Integer, nullable=True)
+    details = Column(Text, nullable=True)
+
+    user = relationship("User")

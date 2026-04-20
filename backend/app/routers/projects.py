@@ -5,6 +5,7 @@ from ..database import get_db
 from ..models import models
 from ..schemas import schemas
 from .auth import get_current_active_user
+from ..core.audit import log_action
 
 router = APIRouter()
 
@@ -32,6 +33,9 @@ async def create_project(
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
+    
+    log_action(db, current_user.id, current_user.username, "CREATE", "PROJECT", db_project.id, f"Project: {db_project.name}")
+    
     return db_project
 
 @router.get("/{project_id}")
@@ -52,5 +56,14 @@ async def read_project(
     if current_user.role in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
         return schemas.ProjectWithItemsInternal.model_validate(db_project)
     
-    # CLIENT view (limited fields)
-    return schemas.ProjectWithItemsPublic.model_validate(db_project)
+    # CLIENT view (limited fields & NO private items)
+    public_items = [i for i in db_project.items if not i.is_private]
+    return schemas.ProjectWithItemsPublic(
+        id=db_project.id,
+        name=db_project.name,
+        description=db_project.description,
+        client_id=db_project.client_id,
+        created_at=db_project.created_at,
+        items_count=len(public_items),
+        items=public_items
+    )

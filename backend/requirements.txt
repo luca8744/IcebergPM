@@ -5,3 +5,6 @@ passlib[bcrypt]
 python-dotenv
 python-multipart
 uvicorn
+psycopg2-binary
+pymysql
+cryptography

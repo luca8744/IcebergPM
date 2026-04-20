@@ -6,10 +6,10 @@ import os
 
 from .database import engine, Base, get_db
 from .models import models
-from .routers import auth, projects, items, admin
+from .routers import auth, projects, items, admin, tags
 from .core.security import get_password_hash
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(items.router, prefix="/api/items", tags=["Items"])
+app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(admin.router, prefix="/api/admin", tags=["System Management"])
 
 @app.get("/api/version")

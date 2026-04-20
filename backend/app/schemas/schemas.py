@@ -3,10 +3,23 @@ from datetime import datetime
 from typing import Optional, List
 from ..models.models import UserRole, ItemStatus, ItemPriority
 
+# --- Tag Schemas ---
+class TagBase(BaseModel):
+    name: str
+    color: str = "#3b82f6"
+
+class TagCreate(TagBase):
+    pass
+
+class TagResponse(TagBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
 # --- User Schemas ---
 class UserBase(BaseModel):
     username: str
     role: UserRole
+    reference_client: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -32,29 +45,39 @@ class ItemBase(BaseModel):
     title: str
     description: Optional[str] = None
     status: ItemStatus = ItemStatus.OPEN
+    hlr: Optional[str] = None
+    srs: Optional[str] = None
+    tp: Optional[str] = None
+    external_id: Optional[str] = None
+    unique_id: Optional[str] = None
+    is_private: bool = False
 
 class ItemCreate(ItemBase):
     project_id: int
     internal_notes: Optional[str] = None
-    estimated_hours: Optional[float] = None
-    actual_hours: Optional[float] = None
     internal_priority: ItemPriority = ItemPriority.MEDIUM
+    tag_ids: Optional[List[int]] = []
 
 class ItemUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[ItemStatus] = None
-    internal_notes: Optional[str] = None
-    estimated_hours: Optional[float] = None
-    actual_hours: Optional[float] = None
+    internal_notes: Optional[Optional[str]] = None
     internal_priority: Optional[ItemPriority] = None
+    tag_ids: Optional[List[int]] = None
+    hlr: Optional[str] = None
+    srs: Optional[str] = None
+    tp: Optional[str] = None
+    external_id: Optional[str] = None
+    unique_id: Optional[str] = None
+    is_private: Optional[bool] = None
 
 # Public view for Client
 class ItemPublic(ItemBase):
     id: int
     project_id: int
-    estimated_hours: Optional[float] = 0
     internal_priority: Optional[ItemPriority] = ItemPriority.MEDIUM
+    tags: List[TagResponse] = []
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -62,7 +85,6 @@ class ItemPublic(ItemBase):
 # Full view for Internal/Admin
 class ItemInternal(ItemPublic):
     internal_notes: Optional[str] = None
-    actual_hours: Optional[float] = 0
     model_config = ConfigDict(from_attributes=True)
 
 # --- Project Schemas ---
@@ -75,7 +97,7 @@ class ProjectCreate(ProjectBase):
 
 class ProjectResponse(ProjectBase):
     id: int
-    client_id: int
+    client_id: Optional[int] = None
     created_at: datetime
     items_count: int = 0
     model_config = ConfigDict(from_attributes=True)
@@ -85,3 +107,15 @@ class ProjectWithItemsPublic(ProjectResponse):
 
 class ProjectWithItemsInternal(ProjectResponse):
     items: List[ItemInternal]
+
+# --- Audit Log Schemas ---
+class AuditLogResponse(BaseModel):
+    id: int
+    timestamp: datetime
+    user_id: Optional[int]
+    username: str
+    action: str
+    entity_type: str
+    entity_id: Optional[int]
+    details: Optional[str]
+    model_config = ConfigDict(from_attributes=True)
