@@ -12,6 +12,10 @@ Implementazione di una procedura guidata al primo avvio ("First Run Experience")
 - **Gestione Continua:**
   - Possibilità di cambiare la sorgente dati dalle impostazioni in qualsiasi momento.
   - Funzione di **Esportazione** completa della struttura e dei dati per portabilità.
+- **Controllo Revisione Database:**
+  - Implementare una tabella `schema_version` per tracciare la versione corrente del database.
+  - Al boot, l'applicazione confronta la versione del DB con quella richiesta dal codice.
+  - In caso di discrepanza (es. DB troppo vecchio o troppo nuovo), blocca l'avvio e mostra un messaggio di errore per prevenire la corruzione dei dati.
 
 ## 📊 Funzionalità Core & UX
 - **Import/Export Excel/JSON**: Caricamento rapido di liste di task e costi da file Excel.

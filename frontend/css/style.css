@@ -64,9 +64,20 @@ body {
     color: var(--bg-color);
 }
 
-.btn-primary:hover {
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.btn-primary:hover, .btn-secondary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
 }
 
 /* Forms */

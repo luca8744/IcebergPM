@@ -18,6 +18,22 @@
         }
         .modal-content { max-width: 500px; width: 90%; }
         .badge-internal { background: rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px;}
+        .drop-zone {
+            border: 2px dashed var(--accent-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(56, 189, 248, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin: 1rem 0;
+        }
+        .drop-zone.dragover {
+            background: rgba(56, 189, 248, 0.2);
+            transform: scale(1.02);
+        }
+        .system-card h4 { margin-bottom: 0.5rem; color: var(--accent-color); }
+        .system-card { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; }
     </style>
 </head>
 <body>
@@ -25,28 +41,66 @@
         <div class="logo">Iceberg<span>PM</span> <small style="font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 5px;" id="appVersion">v...</small></div>
         <div class="header-controls">
             <span class="user-info" id="userInfo"></span>
+            <button class="btn btn-secondary" onclick="showSection('projects')">I Miei Progetti</button>
+            <button class="btn btn-secondary" onclick="showSection('system')">Sistema</button>
             <button class="btn btn-primary" onclick="showNewProjectModal()">Nuovo Progetto</button>
             <button class="btn" style="background: var(--danger);" onclick="auth.logout()">Logout</button>
         </div>
     </header>
 
     <main class="container">
-        <h1>Dashboard Interna</h1>
-        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi tutto quello che sta sotto la superficie.</p>
+        <!-- Sezione Progetti -->
+        <div id="projectsSection">
+            <h1>Dashboard Interna</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi tutto quello che sta sotto la superficie.</p>
 
-        <div id="projectsGrid" class="projects-grid">
-            <!-- Progetti caricati via JS -->
+            <div id="projectsGrid" class="projects-grid">
+                <!-- Progetti caricati via JS -->
+            </div>
+
+            <div id="projectDetail" style="display: none; margin-top: 3rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2 id="currentProjectTitle">Dettagli Progetto</h2>
+                    <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task/Bug</button>
+                </div>
+                
+                <div class="glass-card" style="padding: 0;">
+                    <div id="itemsList">
+                        <!-- Items caricati via JS -->
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div id="projectDetail" style="display: none; margin-top: 3rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2 id="currentProjectTitle">Dettagli Progetto</h2>
-                <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task/Bug</button>
-            </div>
+        <!-- Sezione Sistema -->
+        <div id="systemSection" style="display: none;">
+            <h2 style="margin-bottom: 2rem;">Gestione Sistema & Database</h2>
             
-            <div class="glass-card" style="padding: 0;">
-                <div id="itemsList">
-                    <!-- Items caricati via JS -->
+            <div class="glass-card">
+                <div class="system-card">
+                    <h4>Esportazione Database</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Scarica una copia locale del database SQLite corrente (.db).</p>
+                    <button class="btn btn-primary" onclick="exportDatabase()">Scarica Backup (.db)</button>
+                </div>
+
+                <div class="system-card" style="position: relative;">
+                    <h4>Ripristino / Importazione</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Trascina un file .db qui per sovrascrivere il database attuale.</p>
+                    <div id="dropZone" class="drop-zone">
+                        Clicca o trascina qui il file .db da ripristinare
+                    </div>
+                    <input type="file" id="fileInput" style="display: none;" accept=".db">
+                </div>
+
+                <div class="system-card" style="border-bottom: none;">
+                    <h4>Configurazione Database Remoto</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Inserisci una stringa di connessione SQL (es. PostgreSQL).</p>
+                    <div class="form-group">
+                        <label>DATABASE_URL attuale</label>
+                        <input type="text" id="dbConfigUrl" placeholder="es. postgresql://user:pass@localhost:5432/dbname">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveDbConfig()">Salva Configurazione</button>
+                    <p style="font-size: 0.8rem; color: var(--warning); margin-top: 0.5rem;">Nota: Richiede il riavvio manuale del server per applicare i cambiamenti.</p>
                 </div>
             </div>
         </div>
@@ -73,10 +127,10 @@
         </div>
     </div>
 
-    <!-- Modal Nuovo Item -->
+    <!-- Modal Nuovo/Modifica Item -->
     <div id="itemModal" class="modal">
         <div class="glass-card modal-content" style="max-width: 600px;">
-            <h3>Nuovo Task / Bug</h3>
+            <h3 id="itemModalTitle">Nuovo Task / Bug</h3>
             <form id="itemForm" style="margin-top: 1rem;">
                 <div class="form-group">
                     <label>Titolo</label>
@@ -88,6 +142,15 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
+                        <label>Stato</label>
+                        <select id="itemStatus">
+                            <option value="OPEN">Aperto</option>
+                            <option value="IN_PROGRESS">In Corso</option>
+                            <option value="DONE">Completato</option>
+                            <option value="CLOSED">Chiuso</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Priorità Interna</label>
                         <select id="itemPriority">
                             <option value="LOW">Bassa</option>
@@ -96,9 +159,15 @@
                             <option value="CRITICAL">Critica</option>
                         </select>
                     </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div class="form-group">
                         <label>Estima Ore</label>
                         <input type="number" step="0.5" id="itemHours">
+                    </div>
+                    <div class="form-group">
+                        <label>Ore Effettive</label>
+                        <input type="number" step="0.5" id="itemActualHours">
                     </div>
                 </div>
                 <div class="form-group">
@@ -106,7 +175,7 @@
                     <textarea id="itemInternalNotes"></textarea>
                 </div>
                 <div style="display: flex; gap: 1rem;">
-                    <button type="submit" class="btn btn-primary">Crea</button>
+                    <button type="submit" class="btn btn-primary" id="itemSubmitBtn">Crea</button>
                     <button type="button" class="btn" onclick="hideModals()">Annulla</button>
                 </div>
             </form>
@@ -127,6 +196,7 @@
         });
 
         let currentProjectId = null;
+        let currentProjectItems = [];
 
         async function loadProjects() {
             const res = await auth.fetch('/projects/');
@@ -134,47 +204,92 @@
             const grid = document.getElementById('projectsGrid');
             grid.innerHTML = projects.map(p => `
                 <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
-                    <h3>${p.name}</h3>
-                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">ID Cliente: ${p.client_id}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <h3>${p.name}</h3>
+                        <div class="status-badge" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">${p.items_count} Task</div>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.85rem;">ID Cliente: ${p.client_id}</p>
                 </div>
             `).join('');
         }
 
         async function loadProjectDetail(id, name) {
-            currentProjectId = id;
-            document.getElementById('currentProjectTitle').textContent = name;
-            document.getElementById('projectDetail').style.display = 'block';
-            
-            const res = await auth.fetch(`/projects/${id}`);
-            const project = await res.json();
-            
-            const list = document.getElementById('itemsList');
-            if (project.items.length === 0) {
-                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun item trovato.</div>';
-            } else {
-                list.innerHTML = project.items.map(item => `
-                    <div class="item-row">
-                        <div>
-                            <div style="font-weight: 600;">
-                                ${item.title} 
-                                <span class="badge-internal">PR: ${item.internal_priority}</span>
-                                <span class="badge-internal">H: ${item.estimated_hours || 0}</span>
+            try {
+                currentProjectId = id;
+                document.getElementById('currentProjectTitle').textContent = name;
+                document.getElementById('projectDetail').style.display = 'block';
+                
+                const res = await auth.fetch(`/projects/${id}`);
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Errore caricamento dettagli progetto: " + JSON.stringify(err.detail));
+                    return;
+                }
+
+                const project = await res.json();
+                currentProjectItems = project.items;
+                
+                const list = document.getElementById('itemsList');
+                if (project.items.length === 0) {
+                    list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun item trovato.</div>';
+                } else {
+                    list.innerHTML = project.items.map((item, index) => `
+                        <div class="item-row">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">
+                                    ${item.title} 
+                                    <span class="badge-internal">PR: ${item.internal_priority || 'MEDIUM'}</span>
+                                    <span class="badge-internal">H: ${item.estimated_hours || 0}</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Nessuna descrizione'}</div>
+                                <div style="font-size: 0.75rem; color: #a78bfa; margin-top: 4px;">Privato: ${item.internal_notes || '-'}</div>
                             </div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Nessuna descrizione'}</div>
-                            <div style="font-size: 0.75rem; color: #a78bfa; margin-top: 4px;">Privato: ${item.internal_notes || '-'}</div>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div class="status-badge status-${item.status}">${item.status}</div>
+                                <button class="btn btn-secondary btn-sm" onclick="showEditItemModalByIndex(${index})">Modifica</button>
+                            </div>
                         </div>
-                        <div class="status-badge status-${item.status}">${item.status}</div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
+                
+                // Scroll to detail
+                document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                alert("Errore caricamento: " + err.message);
             }
-            
-            // Scroll to detail
-            document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
         }
+
+        let editingItemId = null;
 
         // Modals logic
         function showNewProjectModal() { document.getElementById('projectModal').style.display = 'flex'; }
-        function showNewItemModal() { document.getElementById('itemModal').style.display = 'flex'; }
+        
+        function showNewItemModal() { 
+            editingItemId = null;
+            document.getElementById('itemModalTitle').textContent = 'Nuovo Task / Bug';
+            document.getElementById('itemSubmitBtn').textContent = 'Crea';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemStatus').value = 'OPEN';
+            document.getElementById('itemModal').style.display = 'flex'; 
+        }
+
+        function showEditItemModalByIndex(index) {
+            const item = currentProjectItems[index];
+            editingItemId = item.id;
+            document.getElementById('itemModalTitle').textContent = 'Modifica Task / Bug';
+            document.getElementById('itemSubmitBtn').textContent = 'Salva Modifiche';
+            
+            document.getElementById('itemTitle').value = item.title;
+            document.getElementById('itemDesc').value = item.description || '';
+            document.getElementById('itemStatus').value = item.status;
+            document.getElementById('itemPriority').value = item.internal_priority;
+            document.getElementById('itemHours').value = item.estimated_hours || '';
+            document.getElementById('itemActualHours').value = item.actual_hours || '';
+            document.getElementById('itemInternalNotes').value = item.internal_notes || '';
+            
+            document.getElementById('itemModal').style.display = 'flex';
+        }
+
         function hideModals() { 
             document.getElementById('projectModal').style.display = 'none'; 
             document.getElementById('itemModal').style.display = 'none';
@@ -182,39 +297,149 @@
 
         document.getElementById('projectForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('projectName').value;
-            const client_id = document.getElementById('projectClient').value;
-            await auth.fetch('/projects/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, client_id })
-            });
-            hideModals();
-            loadProjects();
+            try {
+                const name = document.getElementById('projectName').value;
+                const client_id = parseInt(document.getElementById('projectClient').value);
+                
+                const res = await auth.fetch('/projects/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, client_id })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Errore creazione progetto: " + JSON.stringify(err.detail));
+                    return;
+                }
+
+                hideModals();
+                loadProjects();
+            } catch (err) {
+                alert("Errore imprevisto: " + err.message);
+            }
         });
 
         document.getElementById('itemForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const title = document.getElementById('itemTitle').value;
-            const description = document.getElementById('itemDesc').value;
-            const internal_priority = document.getElementById('itemPriority').value;
-            const estimated_hours = document.getElementById('itemHours').value;
-            const internal_notes = document.getElementById('itemInternalNotes').value;
-
-            await auth.fetch('/items/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    title, description, internal_priority, 
-                    estimated_hours, internal_notes, 
+            try {
+                const payload = {
+                    title: document.getElementById('itemTitle').value,
+                    description: document.getElementById('itemDesc').value,
+                    status: document.getElementById('itemStatus').value,
+                    internal_priority: document.getElementById('itemPriority').value,
+                    estimated_hours: document.getElementById('itemHours').value ? parseFloat(document.getElementById('itemHours').value) : 0,
+                    actual_hours: document.getElementById('itemActualHours').value ? parseFloat(document.getElementById('itemActualHours').value) : 0,
+                    internal_notes: document.getElementById('itemInternalNotes').value,
                     project_id: currentProjectId 
-                })
-            });
-            hideModals();
-            loadProjectDetail(currentProjectId, document.getElementById('currentProjectTitle').textContent);
+                };
+
+                const url = editingItemId ? `/items/${editingItemId}` : '/items/';
+                const method = editingItemId ? 'PATCH' : 'POST';
+
+                const res = await auth.fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Errore salvataggio task: " + JSON.stringify(err.detail));
+                    return;
+                }
+                
+                hideModals();
+                loadProjectDetail(currentProjectId, document.getElementById('currentProjectTitle').textContent);
+            } catch (err) {
+                alert("Errore imprevisto: " + err.message);
+            }
         });
 
         loadProjects();
+        // Navigation
+        function showSection(sectionId) {
+            document.getElementById('projectsSection').style.display = sectionId === 'projects' ? 'block' : 'none';
+            document.getElementById('systemSection').style.display = sectionId === 'system' ? 'block' : 'none';
+            if (sectionId === 'system') loadSystemStatus();
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const res = await auth.fetch('/admin/db/status');
+                const data = await res.json();
+                document.getElementById('dbConfigUrl').value = data.url;
+            } catch (err) {
+                console.error("Errore caricamento stato sistema:", err);
+            }
+        }
+
+        async function exportDatabase() {
+            const token = localStorage.getItem('token');
+            window.location.href = `/api/admin/db/export?token=${token}`;
+        }
+
+        async function saveDbConfig() {
+            const url = document.getElementById('dbConfigUrl').value;
+            if (!url) return alert("Inserisci una URL valida");
+            
+            if (!confirm("Sei sicuro di voler cambiare il database? Dovrai riavviare l'applicazione manualmente.")) return;
+
+            const res = await auth.fetch('/admin/db/config', {
+                method: 'POST',
+                body: JSON.stringify({ database_url: url })
+            });
+
+            if (res.ok) {
+                alert("Configurazione salvata con successo. Riavvia il server.");
+            } else {
+                const err = await res.json();
+                alert("Errore: " + JSON.stringify(err.detail));
+            }
+        }
+
+        // Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFileUpload(e.dataTransfer.files[0]);
+        };
+
+        fileInput.onchange = (e) => {
+            handleFileUpload(e.target.files[0]);
+        };
+
+        async function handleFileUpload(file) {
+            if (!file) return;
+            if (!file.name.endsWith('.db')) return alert("Seleziona un file .db valido");
+
+            if (!confirm("Stai per sovrascrivere l'intero database. Continuare?")) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/admin/db/import', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (res.ok) {
+                alert("Database ripristinato con successo! La pagina si ricaricherà.");
+                location.reload();
+            } else {
+                const err = await res.json();
+                alert("Errore durante il ripristino: " + JSON.stringify(err.detail));
+            }
+        }
     </script>
 </body>
 </html>

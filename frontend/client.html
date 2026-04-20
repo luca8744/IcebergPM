@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IcebergPM | Area Cliente</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .header-controls { display: flex; gap: 1rem; align-items: center; }
+        .user-info { color: var(--text-secondary); font-size: 0.9rem; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content { max-width: 500px; width: 90%; }
+        .badge-internal { background: rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px;}
+    </style>
 </head>
 <body>
     <header>
@@ -17,14 +31,17 @@
 
     <main class="container">
         <h1>I Tuoi Progetti</h1>
-        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi lo stato di avanzamento dei tuoi lavori.</p>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Vedi lo stato di avanzamento e gestisci i tuoi task.</p>
 
         <div id="projectsGrid" class="projects-grid">
-            <!-- Caricati via JS -->
+            <!-- Progetti caricati via JS -->
         </div>
 
         <div id="projectDetail" style="display: none; margin-top: 3rem;">
-            <h2 id="currentProjectTitle" style="margin-bottom: 2rem;">Dettagli Progetto</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 id="currentProjectTitle">Dettagli Progetto</h2>
+                <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task</button>
+            </div>
             
             <div class="glass-card" style="padding: 0;">
                 <div id="itemsList">
@@ -33,6 +50,36 @@
             </div>
         </div>
     </main>
+
+    <!-- Modal Nuovo/Modifica Item -->
+    <div id="itemModal" class="modal">
+        <div class="glass-card modal-content" style="max-width: 600px;">
+            <h3 id="itemModalTitle">Nuovo Task</h3>
+            <form id="itemForm" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label>Titolo</label>
+                    <input type="text" id="itemTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Descrizione</label>
+                    <textarea id="itemDesc" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Stato</label>
+                    <select id="itemStatus">
+                        <option value="OPEN">Aperto</option>
+                        <option value="IN_PROGRESS">In Corso</option>
+                        <option value="DONE">Completato</option>
+                        <option value="CLOSED">Chiuso</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" id="itemSubmitBtn">Crea</button>
+                    <button type="button" class="btn" onclick="hideModals()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="js/auth.js"></script>
     <script>
@@ -44,41 +91,114 @@
             document.getElementById('appVersion').textContent = `v${v}`;
         });
 
+        let currentProjectId = null;
+        let currentProjectItems = [];
+        let editingItemId = null;
+
         async function loadProjects() {
             const res = await auth.fetch('/projects/');
             const projects = await res.json();
             const grid = document.getElementById('projectsGrid');
             grid.innerHTML = projects.map(p => `
                 <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
-                    <h3>${p.name}</h3>
-                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">Vedi dettagli e task...</p>
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <h3>${p.name}</h3>
+                        <div class="status-badge" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">${p.items_count} Task</div>
+                    </div>
                 </div>
             `).join('');
         }
 
         async function loadProjectDetail(id, name) {
+            currentProjectId = id;
             document.getElementById('currentProjectTitle').textContent = name;
             document.getElementById('projectDetail').style.display = 'block';
             
             const res = await auth.fetch(`/projects/${id}`);
             const project = await res.json();
+            currentProjectItems = project.items;
             
             const list = document.getElementById('itemsList');
             if (project.items.length === 0) {
-                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun aggiornamento per ora.</div>';
+                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Nessun task trovato. Crea il primo!</div>';
             } else {
-                list.innerHTML = project.items.map(item => `
+                list.innerHTML = project.items.map((item, index) => `
                     <div class="item-row">
-                        <div>
-                            <div style="font-weight: 600;">${item.title}</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Stiamo lavorando su questo...'}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">
+                                ${item.title}
+                                <span class="badge-internal">PR: ${item.internal_priority || 'MEDIUM'}</span>
+                                <span class="badge-internal">H: ${item.estimated_hours || 0}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${item.description || 'Nessuna descrizione'}</div>
                         </div>
-                        <div class="status-badge status-${item.status}">${item.status}</div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div class="status-badge status-${item.status}">${item.status}</div>
+                            <button class="btn btn-secondary btn-sm" onclick="showEditItemModalByIndex(${index})">Modifica</button>
+                        </div>
                     </div>
                 `).join('');
             }
             document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
         }
+
+        function showNewItemModal() {
+            editingItemId = null;
+            document.getElementById('itemModalTitle').textContent = 'Nuovo Task';
+            document.getElementById('itemSubmitBtn').textContent = 'Crea';
+            document.getElementById('itemForm').reset();
+            document.getElementById('itemStatus').value = 'OPEN';
+            document.getElementById('itemModal').style.display = 'flex';
+        }
+
+        function showEditItemModalByIndex(index) {
+            const item = currentProjectItems[index];
+            editingItemId = item.id;
+            document.getElementById('itemModalTitle').textContent = 'Modifica Task';
+            document.getElementById('itemSubmitBtn').textContent = 'Salva Modifiche';
+            
+            document.getElementById('itemTitle').value = item.title;
+            document.getElementById('itemDesc').value = item.description || '';
+            document.getElementById('itemStatus').value = item.status;
+            
+            document.getElementById('itemModal').style.display = 'flex';
+        }
+
+        function hideModals() {
+            document.getElementById('itemModal').style.display = 'none';
+        }
+
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const payload = {
+                    title: document.getElementById('itemTitle').value,
+                    description: document.getElementById('itemDesc').value,
+                    status: document.getElementById('itemStatus').value,
+                    project_id: currentProjectId
+                };
+
+                const url = editingItemId ? `/items/${editingItemId}` : '/items/';
+                const method = editingItemId ? 'PATCH' : 'POST';
+
+                const res = await auth.fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Errore salvataggio: " + JSON.stringify(err.detail));
+                    return;
+                }
+
+                hideModals();
+                loadProjectDetail(currentProjectId, document.getElementById('currentProjectTitle').textContent);
+            } catch (err) {
+                alert("Errore imprevisto: " + err.message);
+            }
+        });
 
         loadProjects();
     </script>

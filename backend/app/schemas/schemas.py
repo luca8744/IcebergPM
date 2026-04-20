@@ -37,6 +37,7 @@ class ItemCreate(ItemBase):
     project_id: int
     internal_notes: Optional[str] = None
     estimated_hours: Optional[float] = None
+    actual_hours: Optional[float] = None
     internal_priority: ItemPriority = ItemPriority.MEDIUM
 
 class ItemUpdate(BaseModel):
@@ -52,6 +53,8 @@ class ItemUpdate(BaseModel):
 class ItemPublic(ItemBase):
     id: int
     project_id: int
+    estimated_hours: Optional[float] = 0
+    internal_priority: Optional[ItemPriority] = ItemPriority.MEDIUM
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -59,9 +62,7 @@ class ItemPublic(ItemBase):
 # Full view for Internal/Admin
 class ItemInternal(ItemPublic):
     internal_notes: Optional[str] = None
-    estimated_hours: Optional[float] = None
-    actual_hours: Optional[float] = None
-    internal_priority: ItemPriority
+    actual_hours: Optional[float] = 0
     model_config = ConfigDict(from_attributes=True)
 
 # --- Project Schemas ---
@@ -76,6 +77,7 @@ class ProjectResponse(ProjectBase):
     id: int
     client_id: int
     created_at: datetime
+    items_count: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 class ProjectWithItemsPublic(ProjectResponse):

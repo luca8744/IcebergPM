@@ -44,6 +44,10 @@ class Project(Base):
     client = relationship("User", back_populates="projects")
     items = relationship("Item", back_populates="project", cascade="all, delete-orphan")
 
+    @property
+    def items_count(self):
+        return len(self.items)
+
 class Item(Base):
     __tablename__ = "items"
 

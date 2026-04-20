@@ -14,8 +14,13 @@ async def create_item(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
-    # Only Internal/Admin can create items
-    if current_user.role not in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
+    # Check project ownership for CLIENT
+    if current_user.role == models.UserRole.CLIENT:
+        db_project = db.query(models.Project).filter(models.Project.id == item.project_id).first()
+        if not db_project or db_project.client_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to create items for this project")
+    
+    elif current_user.role not in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     db_item = models.Item(**item.model_dump())
@@ -55,16 +60,24 @@ async def update_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # Roles logic: 
-    # - ADMIN/INTERNAL can change everything.
-    # - CLIENT can only change status (if we allow it) or add comments (not yet implemented).
-    # For now, let's limit updates to internal users.
-    if current_user.role not in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
-        # Exception: Maybe client can set status to "DONE" or similar?
-        # For now, let's keep it strict.
+    # Check ownership for CLIENT
+    if current_user.role == models.UserRole.CLIENT:
+        db_project = db.query(models.Project).filter(models.Project.id == db_item.project_id).first()
+        if not db_project or db_project.client_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # CLIENT can only update status and description - FILTER the rest
+        update_data = item_update.model_dump(exclude_unset=True)
+        update_data = {k: v for k, v in update_data.items() if k in ["status", "description"]}
+    
+    elif current_user.role not in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
         raise HTTPException(status_code=403, detail="Not authorized")
+    
+    else:
+        # ADMIN / INTERNAL can update everything in the schema
+        update_data = item_update.model_dump(exclude_unset=True)
 
-    update_data = item_update.model_dump(exclude_unset=True)
+    # Perform update
     for key, value in update_data.items():
         setattr(db_item, key, value)
     
