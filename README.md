@@ -10,14 +10,16 @@ Fino ad ora sono stati implementati i seguenti componenti core:
 - **Architettura Robust**: Struttura a moduli (routers, models, schemas, core).
 - **Database**: Integrazione con SQLAlchemy (default SQLite) e migrazione automatica delle tabelle.
 - **Autenticazione**: Sistema basato su JWT (JSON Web Tokens) con hashing delle password (bcrypt).
-- **Gestione Ruoli**: Supporto per Admin, Team e Client.
-- **API REST**: Endpoint per la gestione di Progetti e Item (attività/costi) con logica di visibilità "public/internal".
+- **Gestione Utenti**: Gestione completa di Admin e Clienti con permessi granulari.
+- **API REST**: Endpoint per la gestione di Progetti, Item (attività/costi) e Tag. Logica di visibilità "public/internal".
 - **Gestione Database**: Strumenti per backup (export), restore (import) e configurazione remota (DATABASE_URL) direttamente dall'app.
-- **Versioning**: Sistema di revisione integrato (v0.1.0) visibile in tutta la UI.
+- **Audit Log**: Tracciamento delle operazioni critiche (creazione/eliminazione utenti, progetti, cambi configurazione).
+- **Versioning**: Sistema di revisione integrato (v0.1.1) visibile in tutta la UI.
 
 ### Frontend (Static HTML/JS)
 - **Vanilla Stack**: HTML5, CSS3 e Javascript puro per massima velocità e zero dipendenze pesanti.
-- **Autenticazione**: Pagine di login e gestione del token nel browser.
+- **UI Moderna**: Design pulito con icone (🗑️, 👁️), glassmorphism e micro-interazioni.
+- **Filtri Avanzati**: Barra di ricerca contestuale e filtri per stato, priorità e tag con funzione di reset.
 - **Dashboard**: Vista dei progetti per l'admin e vista dedicata per il cliente.
 - **Integrazione**: Il frontend è servito direttamente dal backend FastAPI.
 
@@ -70,20 +72,22 @@ Al primo avvio, viene creato un utente amministratore predefinito:
 
 ---
 
-## Versione Portable (Windows)
+## Utility e Migrazioni
 
-Se non vuoi installare Python o gestire virtualenv, puoi usare la versione pre-compilata:
+Il progetto include una serie di script di supporto in `backend/scripts/`:
 
-1. Entra nella cartella `dist/IcebergPM`.
-2. Assicurati che il file `.env` sia presente nella stessa cartella dell'eseguibile.
-3. Lancia **`IcebergPM.exe`**.
-4. Accedi a [http://localhost:8000](http://localhost:8000).
+- `migrate_v3.py`: Gestisce l'aggiunta di campi (es. `is_private`) al database esistente.
+- `seed_client.py`: Script per popolare il database con dati di test (spostabile in scripts).
+- `cleanup_database.py`: Utility per la pulizia dei dati.
 
 ---
 
 ## Struttura delle Cartelle
 
 - `backend/`: Contiene il codice Python (FastAPI, SQLAlchemy).
+  - `app/`: Logica core dell'applicazione.
+  - `scripts/`: Script di migrazione e utilità.
 - `frontend/`: Contiene i file statici (HTML, JS, CSS).
-- `run.py`: Script di utilità per avviare il server uvicorn.
-- `seed_client.py`: Script per popolare il database con dati di test.
+- `run.py`: Script principale per avviare il server.
+- `build_windows.py`: Script per generare la versione portable .exe.
+

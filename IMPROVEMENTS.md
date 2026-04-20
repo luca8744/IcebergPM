@@ -2,23 +2,19 @@
 
 Questo documento elenca le funzionalità e le ottimizzazioni pianificate per le prossime versioni di IcebergPM.
 
-## ✅ Completato: Gestione Database & Portabilità
-- **Backup & Restore**: Implementata funzione di esportazione ed importazione sicura del database SQLite locale.
-- **Configurazione Dinamica**: Possibilità di cambiare la stringa di connessione al database (es. migrazione a PostgreSQL) direttamente dall'interfaccia Admin.
-- **Versioning**: Tracciamento della versione del software nell'interfaccia e gestione del DB.
+## 📊 Funzionalità Core (In Programma)
+- **[I-10] Import/Export Excel/JSON**: Caricamento di massa di task e costi per accelerare il setup dei progetti.
+- **[I-11] Gestione Allegati**: Upload di documenti (PDF, immagini) direttamente negli item.
+- **[I-12] Notifiche Email**: Invio automatico di alert al cliente quando un task viene completato o aggiornato.
 
-## 📊 Prossimi Passi: Funzionalità Core & UX
-- **Import/Export Excel/JSON**: Caricamento rapido di liste di task e costi da file Excel (Struttura già discussa).
-- **Allegati**: Possibilità di caricare documenti, preventivi o immagini direttamente sugli Item (attività).
-- **Filtri Avanzati**: Vista filtrata per priorità, stato e visibilità (pubblico vs interno).
-- **Log Attività**: Tracciamento di chi ha modificato cosa e quando (Audit Log).
-
-## 🎨 Interfaccia & Estetica
-- **Dark Mode**: Supporto nativo per il tema scuro.
-- **Micro-interazioni**: Animazioni fluide per la transizione tra Dashboard Admin e Vista Cliente.
-- **Reportistica Grafica**: Grafici a torta e barre per visualizzare lo stato di avanzamento dei costi e dei tempi.
+## 🎨 Interfaccia & UX
+- **[I-20] Dark Mode**: Supporto nativo per tema scuro/chiaro in base alle preferenze di sistema.
+- **[I-21] Reportistica Grafica**: Dashboard con grafici (Chart.js) per l'andamento dei costi e avanzamento task.
+- **[I-22] Micro-interazioni**: Animazioni fluide per transizioni tra dashboard e modali.
 
 ## 🔒 Sicurezza & Infrastruttura
-- **Backup Automatici**: Creazione di snapshot periodici del database.
-- **MFA (Multi-Factor Authentication)**: Autenticazione a due fattori per gli account Admin.
-- **Dockerization**: Containerizzazione dell'app per un deployment facilitato su server esterni.
+- **[I-30] MFA (Multi-Factor Authentication)**: Secondo fattore (OTP) per login Amministratori.
+- **[I-31] Rate Limiting**: Limitazione tentativi di login per prevenire attacchi brute-force.
+- **[I-32] Dockerization**: Dockerfile e docker-compose per semplificare il deployment su server Linux.
+- **[I-33] Backup Schedulati**: Snapshot automatici del DB ogni 24 ore verso cartelle configurate.
+
