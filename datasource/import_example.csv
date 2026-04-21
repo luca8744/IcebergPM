@@ -1,0 +1,5 @@
+Project Name ;Task Title ;Task Description ;;TAG;Note interne ;STATUS;Ext;HLR;SRS;TP
+IcebergPM ;Implement OAuth2 ;Add support for Google and GitHub login ;;Feature;Priorita alta;OPEN;EXT-001;REQ-101;SPEC-202;TP-303
+IcebergPM ;Fix Dashboard Layout ;Ensure the grid view is responsive on mobile ;;Bug;;DONE;EXT-002;REQ-102;SPEC-203;TP-304
+HLM ;Calibration Test ;Verify sensor calibration values ;;Test;EU Activity;RUNNING;HLM-123;HLR-45;SRS-67;TP-89
+Landing ;Update UI ;Refactor landing page with new branding ;;;;Waiting;;;;

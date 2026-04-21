@@ -41,3 +41,5 @@ Thumbs.db
 
 # Data Import
 backend/imports/
+datasource/*
+!datasource/import_example.csv

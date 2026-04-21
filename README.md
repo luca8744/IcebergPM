@@ -72,6 +72,24 @@ Al primo avvio, viene creato un utente amministratore predefinito:
 
 ---
 
+## Importazione Dati
+
+È possibile importare massivamente progetti e task utilizzando lo script fornito:
+
+1.  Inserisci i file CSV nella cartella `datasource/`.
+2.  Assicurati che i file seguano il formato dell'esempio in `datasource/import_example.csv`.
+    -   Lo script supporta diversi header (es. `Project Name`, `Task Title`, `Status`).
+    -   Lo script gestisce l'encoding `latin-1` e `utf-8`.
+3.  Esegui l'importazione:
+    ```bash
+    python backend/scripts/import_csv.py
+    ```
+
+> [!WARNING]
+> Lo script di importazione predefinito **elimina tutti i dati esistenti** per il cliente "Eurosets" prima di procedere, garantendo una sincronizzazione pulita del dataset.
+
+---
+
 ## Utility e Migrazioni
 
 Il progetto include una serie di script di supporto in `backend/scripts/`:

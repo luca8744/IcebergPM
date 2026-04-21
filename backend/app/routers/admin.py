@@ -78,7 +78,11 @@ async def import_db(file: UploadFile = File(...), current_user: models.User = De
             os.remove(temp_path)
 
 @router.post("/db/config")
-async def update_db_config(config: DBConfigRequest, current_user: models.User = Depends(get_current_active_user)):
+async def update_db_config(
+    config: DBConfigRequest, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_active_user)
+):
     if current_user.role != models.UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Solo gli amministratori possono accedere a questa funzione")
     
