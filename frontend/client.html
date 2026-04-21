@@ -242,7 +242,9 @@
                             ${item.tag ? `<span class="badge-tag" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);">${item.tag}</span>` : ''}
                         </div>
                         <div style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4;">${item.description || 'Nessuna descrizione'}</div>
-                        <div style="display: flex; gap: 1rem; margin-top: 10px; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.03); padding-top: 8px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 10px; font-size: 0.72rem; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.03); padding-top: 8px;">
+                            <span><strong>Creato:</strong> ${new Date(item.created_at).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
+                            ${item.completed_at ? `<span style="color: #10b981;"><strong>Completato:</strong> ${new Date(item.completed_at).toLocaleString('it-IT', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>` : ''}
                             ${item.hlr ? `<span><strong>HLR:</strong> <span style="color: var(--text-main);">${item.hlr}</span></span>` : ''}
                             ${item.srs ? `<span><strong>SRS:</strong> <span style="color: var(--text-main);">${item.srs}</span></span>` : ''}
                             ${item.tp ? `<span><strong>TP:</strong> <span style="color: var(--text-main);">${item.tp}</span></span>` : ''}

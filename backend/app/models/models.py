@@ -76,6 +76,7 @@ class Item(Base):
     project_id = Column(Integer, ForeignKey("projects.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
 
     # Internal fields
     internal_notes = Column(Text, nullable=True)

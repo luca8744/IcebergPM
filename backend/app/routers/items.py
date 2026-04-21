@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Union
+from datetime import datetime
 from ..database import get_db
 from ..models import models
 from ..schemas import schemas
@@ -38,8 +39,13 @@ async def create_item(
     # Se unique_id non è impostato, lo popoliamo con l'ID incrementale
     if not db_item.unique_id:
         db_item.unique_id = str(db_item.id)
-        db.commit()
-        db.refresh(db_item)
+    
+    # Se creato già DONE/CLOSED
+    if db_item.status in [models.ItemStatus.DONE, models.ItemStatus.CLOSED]:
+        db_item.completed_at = datetime.utcnow()
+        
+    db.commit()
+    db.refresh(db_item)
         
     return db_item
 
@@ -107,6 +113,14 @@ async def update_item(
     for key, value in update_data.items():
         setattr(db_item, key, value)
     
+    # Gestione completed_at
+    if "status" in update_data:
+        if update_data["status"] in [models.ItemStatus.DONE, models.ItemStatus.CLOSED]:
+            if not db_item.completed_at:
+                db_item.completed_at = datetime.utcnow()
+        else:
+            db_item.completed_at = None
+
     db.commit()
     db.refresh(db_item)
     

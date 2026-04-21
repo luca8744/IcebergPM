@@ -80,6 +80,7 @@ class ItemPublic(ItemBase):
     tags: List[TagResponse] = []
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 # Full view for Internal/Admin
