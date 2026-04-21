@@ -57,3 +57,13 @@ L'applicazione presenta diverse criticità tipiche di un prototipo in fase inizi
 ### [A-10] Mancanza di Protezione CSRF (Cross-Site Request Forgery)
 - **Descrizione**: Poiché l'autenticazione è basata su token inviati via `Authorization` header, il rischio è mitigato, ma se il frontend dovesse passare all'uso di cookie per la sessione, l'assenza di un middleware CSRF dedicato diventerebbe una vulnerabilità critica.
 - **Impatto**: **Basso** (Attuale) / **Alto** (In caso di cambio gestione sessione).
+
+### [A-11] Errori di Integrità Non Gestiti (Globali)
+- **Descrizione**: Molti endpoint (es. eliminazione Item o Tag) non catturano errori di database (`SQLAlchemyError`).
+- **Rischio**: Se un'operazione viola un vincolo di integrità (es. elimino un tag usato in 1000 task), il server restituisce un errore 500 HTML invece di JSON.
+- **Impatto**: **Medio** - Causa il crash della UI (errore di parsing JSON) e possibile leakage di informazioni strutturali del DB.
+
+### [A-12] Inconsistenza nelle Relazioni Many-to-Many
+- **Descrizione**: La tabella di associazione `item_tags` non ha politiche di `ondelete` esplicite nel modello.
+- **Rischio**: Deletion instabili o errori di database se SQLAlchemy non gestisce correttamente la rimozione automatica dei legami durante l'eliminazione di un Item o di un Tag.
+- **Impatto**: **Basso/Medio** - Corruzione dell'integrità referenziale.

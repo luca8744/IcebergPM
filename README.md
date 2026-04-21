@@ -109,3 +109,26 @@ Il progetto include una serie di script di supporto in `backend/scripts/`:
 - `run.py`: Script principale per avviare il server.
 - `build_windows.py`: Script per generare la versione portable .exe.
 
+---
+
+## 🪟 Versione Windows Portable (.exe)
+
+Il progetto può essere compilato in un unico file eseguibile per Windows utilizzando lo script `build_windows.py`.
+
+### Compilazione
+Per generare l'eseguibile:
+```bash
+python build_windows.py
+```
+Il file generato si troverà in `dist/IcebergPM.exe`.
+
+### Guida al Lancio e Troubleshooting
+Se riscontri problemi nell'avvio dell'eseguibile, segui questi passaggi:
+
+1. **File `.env`**: Assicurati che il file `.env` sia presente nella stessa cartella dell'eseguibile `.exe`. Senza questo file, l'app potrebbe non trovare la configurazione corretta.
+2. **Lancio da Terminale**: Se l'app si chiude subito, non fare doppio clic. Apri un **Prompt dei Comandi (cmd)**, trascina l'eseguibile nella finestra e premi Invio. In questo modo potrai leggere l'errore specifico (es. moduli mancanti o problemi di permessi).
+3. **Antivirus/Firewall**: Windows Defender potrebbe bloccare l'app. Clicca su "Ulteriori informazioni" -> "Esegui comunque". Verifica che il firewall consenta il traffico sulla porta 8000.
+4. **Permessi di Scrittura**: L'app deve poter scrivere nella cartella per creare/aggiornare il database SQLite locale (se utilizzato). Evita di lanciarlo direttamente da cartelle protette come `C:\Program Files`.
+5. **DATABASE_URL**: Se usi PostgreSQL (Neon), verifica che la stringa di connessione nel `.env` sia corretta e che la macchina abbia accesso a internet.
+
+

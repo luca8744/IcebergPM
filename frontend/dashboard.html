@@ -957,14 +957,23 @@
             if (!confirm("Sei sicuro di voler eliminare questo utente?")) return;
             try {
                 const res = await auth.fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+                
+                // Gestione robusta della risposta
+                const contentType = res.headers.get("content-type");
                 if (res.ok) {
                     loadUsers();
                 } else {
-                    const err = await res.json();
-                    alert("Errore: " + err.detail);
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        const err = await res.json();
+                        alert("Errore: " + (err.detail || "Si è verificato un errore"));
+                    } else {
+                        // Se non è JSON, probabilmente è un errore 500 HTML dal server
+                        console.error("Server error (non-JSON):", await res.text().catch(() => "Nessun dettaglio"));
+                        alert("Si è verificato un errore sul server (500). Verifica che l'utente non sia associato a dei progetti.");
+                    }
                 }
             } catch (err) {
-                alert("Errore: " + err.message);
+                alert("Errore di connessione: " + err.message);
             }
         }
 
@@ -1022,6 +1031,7 @@
 
             const res = await auth.fetch('/admin/db/config', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ database_url: url })
             });
 

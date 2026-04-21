@@ -213,10 +213,33 @@ async def delete_user(
     if not db_user:
         raise HTTPException(status_code=404, detail="Utente non trovato")
     
-    username_del = db_user.username
-    db.delete(db_user)
-    db.commit()
-    
-    log_action(db, current_user.id, current_user.username, "DELETE", "USER", user_id, f"Deleted user: {username_del}")
-    
-    return {"message": "Utente eliminato correttamente"}
+    try:
+        # Verifica se l'utente ha progetti associati (come cliente)
+        project_count = db.query(models.Project).filter(models.Project.client_id == user_id).count()
+        if project_count > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Impossibile eliminare l'utente: è associato a {project_count} progetti come cliente. Riaffida o elimina i progetti prima."
+            )
+
+        # Prima di eliminare, impostiamo a NULL i riferimenti nei log di audit per evitare violazioni di vincoli
+        db.query(models.AuditLog).filter(models.AuditLog.user_id == user_id).update({models.AuditLog.user_id: None})
+        
+        username_del = db_user.username
+        db.delete(db_user)
+        db.commit()
+        
+        log_action(db, current_user.id, current_user.username, "DELETE", "USER", user_id, f"Deleted user: {username_del}")
+        
+        return {"message": "Utente eliminato correttamente"}
+    except HTTPException as e:
+        db.rollback()
+        raise e
+    except Exception as e:
+        db.rollback()
+        # Se è un errore di database, proviamo a dare un messaggio più chiaro
+        error_msg = str(e)
+        if "foreign key" in error_msg.lower() or "constraint" in error_msg.lower():
+            error_msg = "Impossibile eliminare l'utente a causa di dati correlati nel database (vincoli di integrità)."
+        
+        raise HTTPException(status_code=500, detail=f"Errore durante l'eliminazione: {error_msg}")
