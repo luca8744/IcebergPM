@@ -206,10 +206,15 @@
             const status = document.getElementById('filterStatus').value;
 
             const filtered = currentProjectItems.filter(item => {
-                const matchesSearch = item.title.toLowerCase().includes(query) || 
-                                     (item.description && item.description.toLowerCase().includes(query)) ||
-                                     item.unique_id.toLowerCase().includes(query) ||
-                                     (item.external_id && item.external_id.toLowerCase().includes(query));
+                const queryTitle = (item.title || '').toLowerCase();
+                const queryDesc = (item.description || '').toLowerCase();
+                const queryUid = (item.unique_id || '').toLowerCase();
+                const queryExt = (item.external_id || '').toLowerCase();
+
+                const matchesSearch = queryTitle.includes(query) || 
+                                     queryDesc.includes(query) ||
+                                     queryUid.includes(query) ||
+                                     queryExt.includes(query);
                 const matchesStatus = !status || item.status === status;
 
                 return matchesSearch && matchesStatus;
@@ -235,11 +240,11 @@
                             <span style="font-weight: 600; font-size: 1.05rem;">${item.title}</span>
                             <span class="status-badge status-${item.status}" style="font-size: 0.65rem; padding: 2px 8px;">${item.status}</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
-                            <span class="badge-tag" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;"># ${item.unique_id}</span>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                            <span class="badge-tag" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;"># ${item.unique_id || '---'}</span>
                             ${item.external_id ? `<span class="badge-tag" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">EXT: ${item.external_id}</span>` : ''}
                             <span class="badge-tag" style="background: ${getPriorityColor(item.internal_priority)}; color: white; opacity: 0.8;">PR: ${item.internal_priority || 'MEDIUM'}</span>
-                            ${item.tag ? `<span class="badge-tag" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);">${item.tag}</span>` : ''}
+                            ${item.tags ? item.tags.map(t => `<span class="badge-tag" style="background: ${t.color}; color: white;">${t.name}</span>`).join('') : ''}
                         </div>
                         <div style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4;">${item.description || 'Nessuna descrizione'}</div>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 10px; font-size: 0.72rem; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.03); padding-top: 8px;">
@@ -261,6 +266,7 @@
 
         function showNewItemModal() {
             editingItemId = null;
+            document.getElementById('itemForm').reset();
             document.getElementById('itemModalTitle').textContent = 'Nuovo Task';
             document.getElementById('itemSubmitBtn').textContent = 'Crea';
             document.getElementById('itemStatus').value = 'OPEN';
@@ -299,7 +305,6 @@
                     title: document.getElementById('itemTitle').value,
                     description: document.getElementById('itemDesc').value,
                     status: document.getElementById('itemStatus').value,
-                    tag: document.getElementById('itemTag').value,
                     hlr: document.getElementById('itemHlr').value,
                     srs: document.getElementById('itemSrs').value,
                     tp: document.getElementById('itemTp').value,

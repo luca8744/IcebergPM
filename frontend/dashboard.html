@@ -548,7 +548,7 @@
                             <span class="status-badge status-${item.status}" style="font-size: 0.65rem; padding: 2px 8px;">${item.status}</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
-                            <span class="badge-tag" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;"># ${item.unique_id}</span>
+                            <span class="badge-tag" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;"># ${item.unique_id || '---'}</span>
                             ${item.external_id ? `<span class="badge-tag" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">EXT: ${item.external_id}</span>` : ''}
                             <span class="badge-tag" style="background: ${getPriorityColor(item.internal_priority)}; color: white; opacity: 0.8;">PR: ${item.internal_priority || 'MEDIUM'}</span>
                             ${item.tags.map(t => `<span class="badge-tag" style="background: ${t.color}; color: white;">${t.name}</span>`).join('')}
@@ -582,6 +582,7 @@
         // Modals logic
         // Modals logic
         async function showNewProjectModal() { 
+            document.getElementById('projectForm').reset();
             const select = document.getElementById('projectClient');
             select.innerHTML = '<option value="">Caricamento...</option>';
             document.getElementById('projectModal').style.display = 'flex'; 
@@ -603,6 +604,7 @@
 
         function showNewItemModal() {
             editingItemId = null;
+            document.getElementById('itemForm').reset();
             document.getElementById('itemModalTitle').textContent = 'Nuovo Task / Bug';
             document.getElementById('itemSubmitBtn').textContent = 'Crea';
             document.getElementById('itemStatus').value = 'OPEN';
@@ -724,7 +726,6 @@
                     status: document.getElementById('itemStatus').value,
                     internal_priority: document.getElementById('itemPriority').value,
                     internal_notes: document.getElementById('itemInternalNotes').value,
-                    tag: document.getElementById('itemTag').value,
                     hlr: document.getElementById('itemHlr').value,
                     srs: document.getElementById('itemSrs').value,
                     tp: document.getElementById('itemTp').value,
@@ -784,13 +785,18 @@
             const tagId = document.getElementById('filterTag').value;
 
             const filtered = currentProjectItems.filter(item => {
-                const matchesSearch = item.title.toLowerCase().includes(query) || 
-                                     (item.description && item.description.toLowerCase().includes(query)) ||
-                                     item.unique_id.toLowerCase().includes(query) ||
-                                     (item.external_id && item.external_id.toLowerCase().includes(query));
+                const queryTitle = (item.title || '').toLowerCase();
+                const queryDesc = (item.description || '').toLowerCase();
+                const queryUid = (item.unique_id || '').toLowerCase();
+                const queryExt = (item.external_id || '').toLowerCase();
+
+                const matchesSearch = queryTitle.includes(query) || 
+                                     queryDesc.includes(query) ||
+                                     queryUid.includes(query) ||
+                                     queryExt.includes(query);
                 const matchesStatus = !status || item.status === status;
                 const matchesPriority = !priority || item.internal_priority === priority;
-                const matchesTag = !tagId || item.tags.some(t => t.id == tagId);
+                const matchesTag = !tagId || (item.tags && item.tags.some(t => t.id == tagId));
 
                 return matchesSearch && matchesStatus && matchesPriority && matchesTag;
             });
@@ -874,7 +880,7 @@
             const color = document.querySelector('input[name="tagColor"]:checked').value;
 
             try {
-                const res = await auth.fetch('/api/tags/', {
+                const res = await auth.fetch('/tags/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, color })
@@ -895,7 +901,7 @@
         async function deleteTag(tagId) {
             if (!confirm("Sei sicuro di voler eliminare questo tag?")) return;
             try {
-                const res = await auth.fetch(`/api/tags/${tagId}`, { method: 'DELETE' });
+                const res = await auth.fetch(`/tags/${tagId}`, { method: 'DELETE' });
                 if (res.ok) {
                     loadTags();
                 } else {

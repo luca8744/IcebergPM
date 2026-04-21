@@ -11,9 +11,20 @@ if __name__ == "__main__":
     # Disable reload in frozen mode
     is_frozen = getattr(sys, 'frozen', False)
     
-    uvicorn.run(
-        "backend.app.main:app", 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=not is_frozen
-    )
+    if is_frozen:
+        # In frozen mode, we import the app object directly
+        from backend.app.main import app
+        uvicorn.run(
+            app, 
+            host="0.0.0.0", 
+            port=8000, 
+            reload=False
+        )
+    else:
+        # In development mode, we use the string for hot-reload support
+        uvicorn.run(
+            "backend.app.main:app", 
+            host="0.0.0.0", 
+            port=8000, 
+            reload=True
+        )

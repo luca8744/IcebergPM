@@ -11,12 +11,13 @@ def build():
     # Percorsi
     current_dir = os.path.dirname(os.path.abspath(__file__))
     frontend_dir = os.path.join(current_dir, "frontend")
+    icon_path = os.path.join(frontend_dir, "img", "logo.ico")
     
     # Pulizia cartelle precedenti
     for d in ["build", "dist"]:
         if os.path.exists(d):
             shutil.rmtree(d)
-            print(f"Rossa cartella vecchia: {d}")
+            print(f"Rimossa cartella vecchia: {d}")
 
     # Configurazione PyInstaller
     # --onefile: Crea un unico file eseguibile
@@ -29,6 +30,7 @@ def build():
         '--name', name,
         '--onefile',
         '--add-data', f'{frontend_dir};frontend',
+        '--icon', icon_path,
         '--clean',
         '--noconfirm',
         # Includiamo esplicitamente alcuni moduli che a volte sfuggono
