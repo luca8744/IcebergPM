@@ -17,8 +17,11 @@ async def read_projects(
     if current_user.role in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
         return db.query(models.Project).all()
     
-    # Client only sees their own projects
-    return db.query(models.Project).filter(models.Project.client_id == current_user.id).all()
+    # Client only sees projects of their associated Client entity
+    if not current_user.client_id:
+        return []
+        
+    return db.query(models.Project).filter(models.Project.client_id == current_user.client_id).all()
 
 @router.post("/", response_model=schemas.ProjectResponse)
 async def create_project(
@@ -49,7 +52,7 @@ async def read_project(
         raise HTTPException(status_code=404, detail="Project not found")
         
     # Check permission
-    if current_user.role == models.UserRole.CLIENT and db_project.client_id != current_user.id:
+    if current_user.role == models.UserRole.CLIENT and db_project.client_id != current_user.client_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # INTERNAL / ADMIN view (all fields)

@@ -149,6 +149,67 @@ async def list_audit_logs(
     
     return db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc()).limit(100).all()
 
+# --- Client Management ---
+
+@router.get("/clients/", response_model=list[schemas.ClientResponse])
+async def list_clients(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    
+    return db.query(models.Client).all()
+
+@router.post("/clients/", response_model=schemas.ClientResponse)
+async def create_client(
+    client_in: schemas.ClientCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    
+    existing = db.query(models.Client).filter(models.Client.name == client_in.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Nome cliente già esistente")
+    
+    new_client = models.Client(**client_in.model_dump())
+    db.add(new_client)
+    db.commit()
+    db.refresh(new_client)
+    
+    log_action(db, current_user.id, current_user.username, "CREATE", "CLIENT", new_client.id, f"Created client: {new_client.name}")
+    
+    return new_client
+
+@router.delete("/clients/{client_id}")
+async def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    if current_user.role != models.UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    
+    db_client = db.query(models.Client).filter(models.Client.id == client_id).first()
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Cliente non trovato")
+    
+    # Check for linked projects or users
+    if db_client.projects:
+        raise HTTPException(status_code=400, detail="Impossibile eliminare il cliente: ha progetti associati")
+    if db_client.users:
+        raise HTTPException(status_code=400, detail="Impossibile eliminare il cliente: ha utenti associati")
+
+    name = db_client.name
+    db.delete(db_client)
+    db.commit()
+    
+    log_action(db, current_user.id, current_user.username, "DELETE", "CLIENT", client_id, f"Deleted client: {name}")
+    
+    return {"message": "Cliente eliminato correttamente"}
+
 # --- User Management ---
 
 @router.get("/users/", response_model=list[schemas.UserResponse])
@@ -175,9 +236,9 @@ async def create_user(
     if existing:
         raise HTTPException(status_code=400, detail="Username già esistente")
     
-    # Role Logic: Use provided role, or determine from reference_client
+    # Role Logic: Use provided role, or determine from client_id
     role = user_in.role
-    if user_in.reference_client and user_in.reference_client.strip():
+    if user_in.client_id:
         role = models.UserRole.CLIENT
     elif not role:
         role = models.UserRole.ADMIN
@@ -186,7 +247,7 @@ async def create_user(
         username=user_in.username,
         hashed_password=get_password_hash(user_in.password),
         role=role,
-        reference_client=user_in.reference_client
+        client_id=user_in.client_id
     )
     
     db.add(new_user)
@@ -214,15 +275,7 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="Utente non trovato")
     
     try:
-        # Verifica se l'utente ha progetti associati (come cliente)
-        project_count = db.query(models.Project).filter(models.Project.client_id == user_id).count()
-        if project_count > 0:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Impossibile eliminare l'utente: è associato a {project_count} progetti come cliente. Riaffida o elimina i progetti prima."
-            )
-
-        # Prima di eliminare, impostiamo a NULL i riferimenti nei log di audit per evitare violazioni di vincoli
+        # Prima di eliminare, impostiamo a NULL i riferimenti nei log di audit
         db.query(models.AuditLog).filter(models.AuditLog.user_id == user_id).update({models.AuditLog.user_id: None})
         
         username_del = db_user.username
@@ -232,14 +285,6 @@ async def delete_user(
         log_action(db, current_user.id, current_user.username, "DELETE", "USER", user_id, f"Deleted user: {username_del}")
         
         return {"message": "Utente eliminato correttamente"}
-    except HTTPException as e:
-        db.rollback()
-        raise e
     except Exception as e:
         db.rollback()
-        # Se è un errore di database, proviamo a dare un messaggio più chiaro
-        error_msg = str(e)
-        if "foreign key" in error_msg.lower() or "constraint" in error_msg.lower():
-            error_msg = "Impossibile eliminare l'utente a causa di dati correlati nel database (vincoli di integrità)."
-        
-        raise HTTPException(status_code=500, detail=f"Errore durante l'eliminazione: {error_msg}")
+        raise HTTPException(status_code=500, detail=f"Errore durante l'eliminazione: {str(e)}")

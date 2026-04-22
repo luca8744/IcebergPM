@@ -153,28 +153,41 @@ def import_file(db: Session, file_path: str, client_id: int, projects_cache: Dic
 def run_import():
     db = SessionLocal()
     try:
-        # 1. Ensure the Client User exists
-        client_username = "Eurosets"
-        client = db.query(models.User).filter(models.User.username == client_username).first()
+        # 1. Ensure the Client Entity exists
+        client_name = "Eurosets"
+        client_entity = db.query(models.Client).filter(models.Client.name == client_name).first()
         
-        if not client:
-            print(f"Creating user {client_username}...")
+        if not client_entity:
+            print(f"Creating client entity: {client_name}")
+            client_entity = models.Client(name=client_name)
+            db.add(client_entity)
+            db.commit()
+            db.refresh(client_entity)
+        
+        # 2. Ensure the Client User exists and is linked to the entity
+        client_user = db.query(models.User).filter(models.User.username == client_name).first()
+        if not client_user:
+            print(f"Creating user {client_name}...")
             hashed_password = security.get_password_hash("eurosets123")
-            client = models.User(
-                username=client_username,
+            client_user = models.User(
+                username=client_name,
                 hashed_password=hashed_password,
                 role=models.UserRole.CLIENT,
+                client_id=client_entity.id,
                 is_active=True
             )
-            db.add(client)
+            db.add(client_user)
             db.commit()
-            db.refresh(client)
-            print(f"User {client_username} created.")
+            print(f"User {client_name} created and linked to client entity.")
+        elif not client_user.client_id:
+            client_user.client_id = client_entity.id
+            db.commit()
+            print(f"User {client_name} linked to client entity.")
 
-        # 2. Cleanup existing data (Replace logic)
-        clean_data(db, client.id)
+        # 3. Cleanup existing data (Replace logic)
+        clean_data(db, client_entity.id)
 
-        # 3. Import target files
+        # 4. Import target files
         datasource_dir = "datasource"
         files_to_import = [
             os.path.join(datasource_dir, "BUG&Improvement HLM_02_LB.csv"),
@@ -184,7 +197,7 @@ def run_import():
         projects_cache = {}
         total_count = 0
         for file_path in files_to_import:
-            total_count += import_file(db, file_path, client.id, projects_cache)
+            total_count += import_file(db, file_path, client_entity.id, projects_cache)
 
         print(f"\nSUCCESS: Total {total_count} tasks imported into {len(projects_cache)} projects.")
 

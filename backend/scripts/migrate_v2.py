@@ -1,30 +1,36 @@
-import sqlite3
 import os
+import sys
+from sqlalchemy import create_engine, text, inspect
+from dotenv import load_dotenv
 
-# Determinazione del percorso del database
+# Determinazione del percorso base
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-db_path = os.path.join(BASE_DIR, "iceberg_pm.db")
+sys.path.append(BASE_DIR)
+
+# Caricamento .env
+dotenv_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    default_db_path = os.path.join(BASE_DIR, "iceberg_pm.db")
+    DATABASE_URL = f"sqlite:///{default_db_path}"
 
 def migrate():
-    if not os.path.exists(db_path):
-        print(f"Database not found at {db_path}")
-        return
-
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    try:
-        print("Adding column reference_client to users table...")
-        cursor.execute("ALTER TABLE users ADD COLUMN reference_client TEXT")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e).lower():
-            print("Column reference_client already exists.")
+    print(f"Migrating database: {DATABASE_URL} (V2)...")
+    engine = create_engine(DATABASE_URL)
+    
+    with engine.begin() as conn:
+        inspector = inspect(engine)
+        existing_columns = [c['name'] for c in inspector.get_columns('users')]
+        
+        if 'reference_client' not in existing_columns:
+            print("Adding column 'reference_client' to 'users' table...")
+            conn.execute(text("ALTER TABLE users ADD COLUMN reference_client VARCHAR(255)"))
         else:
-            print(f"Error adding reference_client: {e}")
+            print("Column 'reference_client' already exists.")
 
-    conn.commit()
-    conn.close()
-    print("Migration completed.")
+    print("Migration V2 completed.")
 
 if __name__ == "__main__":
     migrate()

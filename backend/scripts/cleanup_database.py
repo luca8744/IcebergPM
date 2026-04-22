@@ -1,60 +1,40 @@
-import sqlite3
 import os
+import sys
+from sqlalchemy import create_engine, text, inspect
+from dotenv import load_dotenv
 
-# Determinazione del percorso del database
+# Determinazione del percorso base
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-db_path = os.path.join(BASE_DIR, "iceberg_pm.db")
+sys.path.append(BASE_DIR)
+
+# Caricamento .env
+dotenv_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    default_db_path = os.path.join(BASE_DIR, "iceberg_pm.db")
+    DATABASE_URL = f"sqlite:///{default_db_path}"
 
 def migrate():
-    if not os.path.exists(db_path):
-        print(f"Database not found at {db_path}")
-        return
-
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # SQLite support for DROP COLUMN was added in 3.35.0 (2021-03-12).
-    # Since we can't be sure of the version, we'll use the safest method:
-    # 1. Create a new table without the columns
-    # 2. Copy the data
-    # 3. Drop the old table
-    # 4. Rename the new table
+    print(f"Cleaning database: {DATABASE_URL}...")
+    engine = create_engine(DATABASE_URL)
     
-    try:
-        print("Starting migration to remove hour columns...")
+    with engine.begin() as conn:
+        inspector = inspect(engine)
+        existing_columns = [c['name'] for c in inspector.get_columns('items')]
         
-        # Get existing columns
-        cursor.execute("PRAGMA table_info(items)")
-        columns = [row[1] for row in cursor.fetchall()]
-        print(f"Current columns: {columns}")
-        
-        # Target columns (excluding the ones we want to remove)
-        target_columns = [col for col in columns if col not in ('estimated_hours', 'actual_hours')]
-        print(f"Target columns: {target_columns}")
-        
-        # We need the original CREATE TABLE statement to replicate constraints, 
-        # but for simplicity in SQLite we can often just create a new one.
-        # However, it's safer to just DROP COLUMN if supported.
-        
-        try:
-            print("Trying direct DROP COLUMN...")
-            cursor.execute("ALTER TABLE items DROP COLUMN estimated_hours")
-            cursor.execute("ALTER TABLE items DROP COLUMN actual_hours")
-            print("Direct DROP COLUMN successful.")
-        except sqlite3.OperationalError:
-            print("Direct DROP COLUMN not supported, using table recreation method...")
-            # Re-creation method is complex to do right (foreign keys, indexes, etc.)
-            # Given typically modern python environments, DROP COLUMN might work.
-            # If it fails, I'll provide a warning.
-            raise
-            
-    except Exception as e:
-        print(f"Migration error: {e}")
-        print("If DROP COLUMN is not supported, you might need to manually recreate the table or update SQLite.")
+        for col_name in ['estimated_hours', 'actual_hours']:
+            if col_name in existing_columns:
+                print(f"Removing column '{col_name}' from 'items' table...")
+                try:
+                    conn.execute(text(f"ALTER TABLE items DROP COLUMN {col_name}"))
+                except Exception as e:
+                    print(f"Error removing {col_name}: {e}")
+            else:
+                print(f"Column '{col_name}' does not exist.")
 
-    conn.commit()
-    conn.close()
-    print("Migration finished.")
+    print("Cleanup finished.")
 
 if __name__ == "__main__":
     migrate()

@@ -28,9 +28,21 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.CLIENT)
-    reference_client = Column(String, nullable=True)
+    reference_client = Column(String, nullable=True) # Temporaneo per migrazione
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     is_active = Column(Boolean, default=True)
 
+    client = relationship("Client", back_populates="users")
+
+class Client(Base):
+    __tablename__ = "clients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    users = relationship("User", back_populates="client")
     projects = relationship("Project", back_populates="client")
 
 class Project(Base):
@@ -39,10 +51,10 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(Text, nullable=True)
-    client_id = Column(Integer, ForeignKey("users.id"))
+    client_id = Column(Integer, ForeignKey("clients.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    client = relationship("User", back_populates="projects")
+    client = relationship("Client", back_populates="projects")
     items = relationship("Item", back_populates="project", cascade="all, delete-orphan")
 
     @property

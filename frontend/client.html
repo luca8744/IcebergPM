@@ -150,7 +150,8 @@
     <script>
         if (!auth.isLoggedIn()) window.location.href = 'index.html';
         const user = auth.getUser();
-        document.getElementById('userInfo').textContent = `${user.username} (Cliente)`;
+        const clientName = user.client ? user.client.name : 'Nessuna Azienda';
+        document.getElementById('userInfo').textContent = `${user.username} @ ${clientName}`;
 
         auth.getVersion().then(v => {
             document.getElementById('appVersion').textContent = `v${v}`;

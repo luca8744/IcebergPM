@@ -15,11 +15,24 @@ class TagResponse(TagBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+# --- Client Schemas ---
+class ClientBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class ClientCreate(ClientBase):
+    pass
+
+class ClientResponse(ClientBase):
+    id: int
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
 # --- User Schemas ---
 class UserBase(BaseModel):
     username: str
     role: UserRole
-    reference_client: Optional[str] = None
+    client_id: Optional[int] = None
 
 class UserCreate(UserBase):
     password: str
@@ -27,6 +40,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    client: Optional[ClientResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
 # --- Token Schemas ---

@@ -347,21 +347,41 @@
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h4>Gestione Clienti</h4>
-                        <button class="btn btn-primary btn-sm" onclick="showNewUserModal('CLIENT')">Nuovo Cliente</button>
+                        <h4>Gestione Entità Clienti</h4>
+                        <button class="btn btn-primary btn-sm" onclick="showNewClientModal()">Nuovo Cliente</button>
                     </div>
-                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Utenti con accesso limitato ai propri progetti.</p>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Le organizzazioni/aziende proprietarie dei progetti.</p>
+                    <div class="glass-card" style="padding: 0; overflow: hidden; margin-bottom: 2rem;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
+                            <thead style="background: rgba(255,255,255,0.05);">
+                                <tr>
+                                    <th style="padding: 10px 15px;">Ragione Sociale</th>
+                                    <th style="padding: 10px 15px;">Descrizione</th>
+                                    <th style="padding: 10px 15px;">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsListBody">
+                                <!-- Caricati via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4>Gestione Utenti Clienti (Referenti)</h4>
+                        <button class="btn btn-primary btn-sm" onclick="showNewUserModal('CLIENT')">Nuovo Referente</button>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Persone associate a un cliente con accesso limitato ai propri progetti.</p>
                     
                     <div class="glass-card" style="padding: 0; overflow: hidden;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
                             <thead style="background: rgba(255,255,255,0.05);">
                                 <tr>
                                     <th style="padding: 10px 15px;">Username</th>
-                                    <th style="padding: 10px 15px;">Ragione Sociale / Rif.</th>
+                                    <th style="padding: 10px 15px;">Cliente Associato</th>
                                     <th style="padding: 10px 15px;">Azioni</th>
                                 </tr>
                             </thead>
-                            <tbody id="clientsListBody">
+                            <tbody id="clientUsersListBody">
                                 <!-- Caricati via JS -->
                             </tbody>
                         </table>
@@ -541,13 +561,35 @@
                     <label>Password</label>
                     <input type="password" id="userPassword" required>
                 </div>
-                <div class="form-group" id="userRefField">
-                    <label>Ragione Sociale / Nome Cliente</label>
-                    <input type="text" id="userRefClient" placeholder="Es: Azienda Mario Rossi">
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Identificativo visualizzato per questo cliente.</p>
+                <div class="form-group" id="userClientField" style="display: none;">
+                    <label>Associa ad Azienda</label>
+                    <select id="userClientId">
+                        <option value="">Nessuna azienda</option>
+                    </select>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="submit" class="btn btn-primary" id="userSubmitBtn">Crea Utente</button>
+                    <button type="button" class="btn" onclick="hideModals()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Nuova Azienda -->
+    <div id="clientModal" class="modal">
+        <div class="glass-card modal-content" style="max-width: 400px;">
+            <h3>Nuova Azienda Cliente</h3>
+            <form id="clientForm" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label>Ragione Sociale</label>
+                    <input type="text" id="clientName" required placeholder="Es. Acme Corp">
+                </div>
+                <div class="form-group">
+                    <label>Descrizione / Note</label>
+                    <textarea id="clientDesc" rows="2"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn btn-primary">Salva Azienda</button>
                     <button type="button" class="btn" onclick="hideModals()">Annulla</button>
                 </div>
             </form>
@@ -610,25 +652,30 @@
         }
 
         async function loadProjects() {
-            const res = await auth.fetch('/projects/');
-            const projects = await res.json();
-            
-            // Get client names for better display
-            const usersRes = await auth.fetch('/admin/users/');
-            const allUsers = usersRes.ok ? await usersRes.json() : [];
-            const clientsMap = {};
-            allUsers.forEach(u => clientsMap[u.id] = u.reference_client || u.username);
+            try {
+                const res = await auth.fetch('/projects/');
+                if (!res.ok) throw new Error("Errore nel caricamento progetti");
+                const projects = await res.json();
+                
+                // Get client names for better display
+                const clientsRes = await auth.fetch('/admin/clients/');
+                const allClients = clientsRes.ok ? await clientsRes.json() : [];
+                const clientsMap = {};
+                allClients.forEach(c => clientsMap[c.id] = c.name);
 
-            const grid = document.getElementById('projectsGrid');
-            grid.innerHTML = projects.map(p => `
-                <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <h3>${p.name}</h3>
-                        <div class="status-badge" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">${p.items_count} Task</div>
+                const grid = document.getElementById('projectsGrid');
+                grid.innerHTML = projects.map(p => `
+                    <div class="glass-card project-card" onclick="loadProjectDetail(${p.id}, '${p.name}')">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <h3>${p.name}</h3>
+                            <div class="status-badge" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">${p.items_count} Task</div>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.85rem;">Cliente: ${clientsMap[p.client_id] || 'N/A'}</p>
                     </div>
-                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 0.85rem;">Cliente: ${clientsMap[p.client_id] || 'N/A'}</p>
-                </div>
-            `).join('');
+                `).join('');
+            } catch (err) {
+                console.error("Errore loadProjects:", err);
+            }
         }
 
         async function loadProjectDetail(id, name) {
@@ -724,14 +771,13 @@
             document.getElementById('projectModal').style.display = 'flex'; 
 
             try {
-                const res = await auth.fetch('/admin/users/');
-                const users = await res.json();
-                const clients = users.filter(u => u.role === 'CLIENT');
+                const res = await auth.fetch('/admin/clients/');
+                const clients = await res.json();
                 
                 if (clients.length === 0) {
-                    select.innerHTML = '<option value="">Nessun cliente trovato</option>';
+                    select.innerHTML = '<option value="">Nessun cliente (azienda) trovato. Creane uno prima.</option>';
                 } else {
-                    select.innerHTML = clients.map(c => `<option value="${c.id}">${c.reference_client || c.username}</option>`).join('');
+                    select.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
                 }
             } catch (err) {
                 select.innerHTML = '<option value="">Errore caricamento</option>';
@@ -809,23 +855,45 @@
             document.getElementById('projectModal').style.display = 'none';
             document.getElementById('itemModal').style.display = 'none';
             document.getElementById('userModal').style.display = 'none';
+            document.getElementById('clientModal').style.display = 'none';
             document.getElementById('tagModal').style.display = 'none';
         }
 
-        function showNewUserModal(defaultRole = 'ADMIN') {
+        function showNewClientModal() {
+            document.getElementById('clientForm').reset();
+            document.getElementById('clientModal').style.display = 'flex';
+        }
+
+        async function showNewUserModal(defaultRole = 'ADMIN') {
             document.getElementById('userForm').reset();
-            document.getElementById('userModalTitle').textContent = defaultRole === 'ADMIN' ? 'Nuovo Amministratore' : 'Nuovo Cliente';
+            document.getElementById('userModalTitle').textContent = defaultRole === 'ADMIN' ? 'Nuovo Amministratore' : 'Nuovo Referente Cliente';
             document.getElementById('userSubmitBtn').textContent = 'Crea Account';
             document.getElementById('userRole').value = defaultRole;
+            
+            const select = document.getElementById('userClientId');
+            select.innerHTML = '<option value="">Caricamento...</option>';
+            
             toggleUserRefField();
             document.getElementById('userModal').style.display = 'flex';
+
+            try {
+                const res = await auth.fetch('/admin/clients/');
+                const clients = await res.json();
+                if (clients.length === 0) {
+                    select.innerHTML = '<option value="">Nessuna azienda trovata</option>';
+                } else {
+                    select.innerHTML = '<option value="">Seleziona Azienda...</option>' + 
+                        clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                }
+            } catch (err) {
+                select.innerHTML = '<option value="">Errore</option>';
+            }
         }
 
         function toggleUserRefField() {
             const role = document.getElementById('userRole').value;
-            const refField = document.getElementById('userRefField');
+            const refField = document.getElementById('userClientField');
             refField.style.display = role === 'CLIENT' ? 'block' : 'none';
-            document.getElementById('userRefClient').required = role === 'CLIENT';
         }
 
         document.getElementById('projectForm').addEventListener('submit', async (e) => {
@@ -892,6 +960,30 @@
                 alert("Errore imprevisto: " + err.message);
             }
         });
+        document.getElementById('clientForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const name = document.getElementById('clientName').value;
+                const description = document.getElementById('clientDesc').value;
+
+                const res = await auth.fetch('/admin/clients/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert("Errore creazione azienda: " + JSON.stringify(err.detail));
+                    return;
+                }
+
+                hideModals();
+                loadClients();
+            } catch (err) {
+                alert("Errore: " + err.message);
+            }
+        });
 
         loadProjects();
         // Navigation
@@ -900,6 +992,7 @@
             document.getElementById('systemSection').style.display = sectionId === 'system' ? 'block' : 'none';
             if (sectionId === 'system') {
                 loadSystemStatus();
+                loadClients();
                 loadUsers();
                 loadTags();
                 loadAuditLogs();
@@ -1088,41 +1181,100 @@
             }
         }
 
-        async function loadUsers() {
+        async function loadClients() {
             try {
-                const res = await auth.fetch('/admin/users/');
-                if (!res.ok) return;
-                const users = await res.json();
+                const res = await auth.fetch('/admin/clients/');
+                if (!res.ok) {
+                    console.error("Errore risposta /admin/clients/:", res.status);
+                    return;
+                }
+                const clients = await res.json();
+                console.log("Clients caricati:", clients);
+                const tbody = document.getElementById('clientsListBody');
                 
-                const adminBody = document.getElementById('adminsListBody');
-                const clientBody = document.getElementById('clientsListBody');
-                
-                const admins = users.filter(u => u.role === 'ADMIN');
-                const clients = users.filter(u => u.role === 'CLIENT');
+                if (clients.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="padding: 20px; text-align: center; color: var(--text-secondary);">Nessun cliente registrato.</td></tr>';
+                    return;
+                }
 
-                adminBody.innerHTML = admins.map(u => `
+                tbody.innerHTML = clients.map(c => `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 10px 15px;">${u.username} ${u.id === user.id ? '<small>(Tu)</small>' : ''}</td>
+                        <td style="padding: 10px 15px;">${c.name}</td>
+                        <td style="padding: 10px 15px; color: var(--text-secondary); font-size: 0.85rem;">${c.description || '-'}</td>
                         <td style="padding: 10px 15px;">
-                            ${u.id !== user.id ? `
-                            <button class="btn-action btn-delete" onclick="deleteUser(${u.id})" data-tooltip="Elimina Admin">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                            </button>` : '-'}
-                        </td>
-                    </tr>
-                `).join('');
-
-                clientBody.innerHTML = clients.map(u => `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 10px 15px;">${u.username}</td>
-                        <td style="padding: 10px 15px; color: var(--text-secondary);">${u.reference_client || '-'}</td>
-                        <td style="padding: 10px 15px;">
-                            <button class="btn-action btn-delete" onclick="deleteUser(${u.id})" data-tooltip="Elimina Cliente">
+                            <button class="btn-action btn-delete" onclick="deleteClient(${c.id})" data-tooltip="Elimina Cliente">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                             </button>
                         </td>
                     </tr>
                 `).join('');
+            } catch (err) {
+                console.error("Errore caricamento clienti:", err);
+            }
+        }
+
+        async function deleteClient(clientId) {
+            if (!confirm("Sei sicuro di voler eliminare questa azienda? Tutti i progetti e utenti devono essere dissociati prima.")) return;
+            try {
+                const res = await auth.fetch(`/admin/clients/${clientId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadClients();
+                } else {
+                    const err = await res.json();
+                    alert("Errore: " + err.detail);
+                }
+            } catch (err) {
+                alert("Errore: " + err.message);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await auth.fetch('/admin/users/');
+                if (!res.ok) {
+                    console.error("Errore risposta /admin/users/:", res.status);
+                    return;
+                }
+                const users = await res.json();
+                console.log("Users caricati:", users);
+                
+                const adminBody = document.getElementById('adminsListBody');
+                const clientUserBody = document.getElementById('clientUsersListBody');
+                
+                const admins = users.filter(u => u.role === 'ADMIN' || u.role === 'INTERNAL');
+                const clientUsers = users.filter(u => u.role === 'CLIENT');
+
+                if (admins.length === 0) {
+                    adminBody.innerHTML = '<tr><td colspan="2" style="padding: 15px; text-align: center; color: var(--text-secondary);">Nessun amministratore trovato.</td></tr>';
+                } else {
+                    adminBody.innerHTML = admins.map(u => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px 15px;">${u.username} ${u.id === user.id ? '<small>(Tu)</small>' : ''} <span class="badge-internal">${u.role}</span></td>
+                            <td style="padding: 10px 15px;">
+                                ${u.id !== user.id ? `
+                                <button class="btn-action btn-delete" onclick="deleteUser(${u.id})" data-tooltip="Elimina Admin">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>` : '-'}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (clientUsers.length === 0) {
+                    clientUserBody.innerHTML = '<tr><td colspan="3" style="padding: 15px; text-align: center; color: var(--text-secondary);">Nessun referente trovato.</td></tr>';
+                } else {
+                    clientUserBody.innerHTML = clientUsers.map(u => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 10px 15px;">${u.username}</td>
+                            <td style="padding: 10px 15px; color: var(--text-secondary);">${u.client ? u.client.name : 'Nessun Cliente'}</td>
+                            <td style="padding: 10px 15px;">
+                                <button class="btn-action btn-delete" onclick="deleteUser(${u.id})" data-tooltip="Elimina Referente">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
             } catch (err) {
                 console.error("Errore caricamento utenti:", err);
             }
@@ -1156,7 +1308,7 @@
             e.preventDefault();
             const username = document.getElementById('userUsername').value;
             const password = document.getElementById('userPassword').value;
-            const reference_client = document.getElementById('userRefClient').value;
+            const client_id = document.getElementById('userClientId').value ? parseInt(document.getElementById('userClientId').value) : null;
             const role = document.getElementById('userRole').value;
 
             try {
@@ -1166,7 +1318,7 @@
                     body: JSON.stringify({ 
                         username, 
                         password, 
-                        reference_client,
+                        client_id,
                         role: role
                     })
                 });

@@ -19,7 +19,7 @@ async def create_item(
     # Check project ownership for CLIENT
     if current_user.role == models.UserRole.CLIENT:
         db_project = db.query(models.Project).filter(models.Project.id == item.project_id).first()
-        if not db_project or db_project.client_id != current_user.id:
+        if not db_project or db_project.client_id != current_user.client_id:
             raise HTTPException(status_code=403, detail="Not authorized to create items for this project")
     
     elif current_user.role not in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
@@ -62,7 +62,7 @@ async def read_item(
     # Check if client has access to this project
     db_project = db.query(models.Project).filter(models.Project.id == db_item.project_id).first()
     if current_user.role == models.UserRole.CLIENT:
-        if db_project.client_id != current_user.id or db_item.is_private:
+        if db_project.client_id != current_user.client_id or db_item.is_private:
             raise HTTPException(status_code=403, detail="Non autorizzato")
 
     if current_user.role in [models.UserRole.ADMIN, models.UserRole.INTERNAL]:
@@ -84,7 +84,7 @@ async def update_item(
     # Check ownership for CLIENT
     if current_user.role == models.UserRole.CLIENT:
         db_project = db.query(models.Project).filter(models.Project.id == db_item.project_id).first()
-        if not db_project or db_project.client_id != current_user.id:
+        if not db_project or db_project.client_id != current_user.client_id:
             raise HTTPException(status_code=403, detail="Not authorized")
         
         # CLIENT can only update status, description and new fields (except ID) - FILTER the rest
