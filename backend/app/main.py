@@ -1,20 +1,55 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from pydantic import ValidationError
 import os
+import traceback
 
 from .database import engine, Base, get_db
 from .models import models
 from .routers import auth, projects, items, admin, tags
 from .core.security import get_password_hash
 
-APP_VERSION = "0.1.1"
+from .version import APP_VERSION
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IcebergPM API", version=APP_VERSION)
+
+
+# --- Global Exception Handlers (D-06 / I-34) ---
+# Garantisce che ogni errore non catturato venga restituito come JSON,
+# evitando stacktrace HTML di Starlette che il frontend non sa parsare.
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    """Errori database (integrità referenziale, connessione persa, ecc.)."""
+    traceback.print_exc()  # Log nel server per debug
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Errore interno del database. Contattare l'amministratore."},
+    )
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    """Errori di validazione Pydantic non catturati da FastAPI."""
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Dati non validi.", "errors": exc.errors()},
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Catch-all per qualsiasi eccezione non gestita."""
+    traceback.print_exc()  # Log nel server per debug
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Errore interno del server."},
+    )
 
 # Setup CORS
 app.add_middleware(

@@ -73,6 +73,122 @@
             display: inline-flex;
             align-items: center;
         }
+
+        /* Multi-select filter dropdown */
+        .multi-select {
+            position: relative;
+            min-width: 160px;
+        }
+
+        .multi-select-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.6rem 0.9rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .multi-select-toggle:hover {
+            border-color: var(--accent-color);
+        }
+
+        .multi-select.open .multi-select-toggle {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+        }
+
+        .multi-select-toggle .ms-arrow {
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .multi-select.open .ms-arrow {
+            transform: rotate(180deg);
+        }
+
+        .ms-count {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .multi-select-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 100%;
+            max-height: 240px;
+            overflow-y: auto;
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            z-index: 100;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+            padding: 0.35rem 0;
+            animation: msDropIn 0.15s ease-out;
+        }
+
+        @keyframes msDropIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .multi-select.open .multi-select-dropdown {
+            display: block;
+        }
+
+        .multi-select-dropdown label {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.9rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+
+        .multi-select-dropdown label:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .multi-select-dropdown input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .multi-select-dropdown .ms-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 
@@ -120,23 +236,42 @@
                     </div>
                     
                     <div class="filter-group">
-                        <select id="filterStatus" class="filter-select" onchange="applyFilters()">
-                            <option value="">Tutti gli Stati</option>
-                            <option value="OPEN">Aperto</option>
-                            <option value="IN_PROGRESS">In Corso</option>
-                            <option value="DONE">Completato</option>
-                            <option value="CLOSED">Chiuso</option>
-                        </select>
-                        <select id="filterPriority" class="filter-select" onchange="applyFilters()">
-                            <option value="">Tutte le Priorità</option>
-                            <option value="LOW">Bassa</option>
-                            <option value="MEDIUM">Media</option>
-                            <option value="HIGH">Alta</option>
-                            <option value="CRITICAL">Critica</option>
-                        </select>
-                        <select id="filterTag" class="filter-select" onchange="applyFilters()">
-                            <option value="">Tutti i Tag</option>
-                        </select>
+                        <div class="multi-select" id="filterStatusMs">
+                            <div class="multi-select-toggle" onclick="toggleMultiSelect('filterStatusMs')">
+                                <span class="ms-label">Stato</span>
+                                <span class="ms-count" style="display:none;">0</span>
+                                <span class="ms-arrow"></span>
+                            </div>
+                            <div class="multi-select-dropdown">
+                                <label><input type="checkbox" value="OPEN" onchange="applyFilters()"><span class="ms-dot" style="background:#38bdf8;"></span> Aperto</label>
+                                <label><input type="checkbox" value="IN_PROGRESS" onchange="applyFilters()"><span class="ms-dot" style="background:#f59e0b;"></span> In Corso</label>
+                                <label><input type="checkbox" value="DONE" onchange="applyFilters()"><span class="ms-dot" style="background:#10b981;"></span> Completato</label>
+                                <label><input type="checkbox" value="CLOSED" onchange="applyFilters()"><span class="ms-dot" style="background:#94a3b8;"></span> Chiuso</label>
+                            </div>
+                        </div>
+                        <div class="multi-select" id="filterPriorityMs">
+                            <div class="multi-select-toggle" onclick="toggleMultiSelect('filterPriorityMs')">
+                                <span class="ms-label">Priorità</span>
+                                <span class="ms-count" style="display:none;">0</span>
+                                <span class="ms-arrow"></span>
+                            </div>
+                            <div class="multi-select-dropdown">
+                                <label><input type="checkbox" value="LOW" onchange="applyFilters()"><span class="ms-dot" style="background:#10b981;"></span> Bassa</label>
+                                <label><input type="checkbox" value="MEDIUM" onchange="applyFilters()"><span class="ms-dot" style="background:#3b82f6;"></span> Media</label>
+                                <label><input type="checkbox" value="HIGH" onchange="applyFilters()"><span class="ms-dot" style="background:#f59e0b;"></span> Alta</label>
+                                <label><input type="checkbox" value="CRITICAL" onchange="applyFilters()"><span class="ms-dot" style="background:#ef4444;"></span> Critica</label>
+                            </div>
+                        </div>
+                        <div class="multi-select" id="filterTagMs">
+                            <div class="multi-select-toggle" onclick="toggleMultiSelect('filterTagMs')">
+                                <span class="ms-label">Tag</span>
+                                <span class="ms-count" style="display:none;">0</span>
+                                <span class="ms-arrow"></span>
+                            </div>
+                            <div class="multi-select-dropdown" id="filterTagDropdown">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
                         <button class="btn-icon-clear" onclick="resetFilters()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                             Reset
@@ -512,15 +647,16 @@
                 const project = await res.json();
                 currentProjectItems = project.items;
                 
-                // Popola il filtro tag
+                // Popola il filtro tag (multi-select)
                 const uniqueTags = new Map();
                 currentProjectItems.forEach(item => {
-                    item.tags.forEach(t => uniqueTags.set(t.id, t.name));
+                    item.tags.forEach(t => uniqueTags.set(t.id, { name: t.name, color: t.color || '#6b7280' }));
                 });
-                const tagFilter = document.getElementById('filterTag');
-                if (tagFilter) {
-                    tagFilter.innerHTML = '<option value="">Tutti i Tag</option>' + 
-                        Array.from(uniqueTags.entries()).map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+                const tagDropdown = document.getElementById('filterTagDropdown');
+                if (tagDropdown) {
+                    tagDropdown.innerHTML = Array.from(uniqueTags.entries()).map(([id, tag]) => 
+                        `<label><input type="checkbox" value="${id}" onchange="applyFilters()"><span class="ms-dot" style="background:${tag.color};"></span> ${tag.name}</label>`
+                    ).join('') || '<span style="padding: 0.5rem 0.9rem; font-size: 0.8rem; color: var(--text-secondary);">Nessun tag</span>';
                 }
 
                 renderItems(currentProjectItems);
@@ -770,19 +906,58 @@
             }
         }
 
+        // --- Multi-select helpers ---
+        function toggleMultiSelect(id) {
+            const el = document.getElementById(id);
+            const wasOpen = el.classList.contains('open');
+            // Close all others first
+            document.querySelectorAll('.multi-select.open').forEach(ms => ms.classList.remove('open'));
+            if (!wasOpen) el.classList.add('open');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.multi-select')) {
+                document.querySelectorAll('.multi-select.open').forEach(ms => ms.classList.remove('open'));
+            }
+        });
+
+        function getMultiSelectValues(containerId) {
+            const container = document.getElementById(containerId);
+            return Array.from(container.querySelectorAll('.multi-select-dropdown input[type="checkbox"]:checked')).map(cb => cb.value);
+        }
+
+        function updateMultiSelectCount(containerId) {
+            const container = document.getElementById(containerId);
+            const count = container.querySelectorAll('.multi-select-dropdown input[type="checkbox"]:checked').length;
+            const badge = container.querySelector('.ms-count');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
         function resetFilters() {
             document.getElementById('filterSearch').value = '';
-            document.getElementById('filterStatus').value = '';
-            document.getElementById('filterPriority').value = '';
-            document.getElementById('filterTag').value = '';
+            document.querySelectorAll('.multi-select .multi-select-dropdown input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.multi-select').forEach(ms => {
+                const badge = ms.querySelector('.ms-count');
+                if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+            });
             applyFilters();
         }
 
         function applyFilters() {
             const query = document.getElementById('filterSearch').value.toLowerCase();
-            const status = document.getElementById('filterStatus').value;
-            const priority = document.getElementById('filterPriority').value;
-            const tagId = document.getElementById('filterTag').value;
+            const statuses = getMultiSelectValues('filterStatusMs');
+            const priorities = getMultiSelectValues('filterPriorityMs');
+            const tagIds = getMultiSelectValues('filterTagMs');
+
+            updateMultiSelectCount('filterStatusMs');
+            updateMultiSelectCount('filterPriorityMs');
+            updateMultiSelectCount('filterTagMs');
 
             const filtered = currentProjectItems.filter(item => {
                 const queryTitle = (item.title || '').toLowerCase();
@@ -794,9 +969,9 @@
                                      queryDesc.includes(query) ||
                                      queryUid.includes(query) ||
                                      queryExt.includes(query);
-                const matchesStatus = !status || item.status === status;
-                const matchesPriority = !priority || item.internal_priority === priority;
-                const matchesTag = !tagId || (item.tags && item.tags.some(t => t.id == tagId));
+                const matchesStatus = statuses.length === 0 || statuses.includes(item.status);
+                const matchesPriority = priorities.length === 0 || priorities.includes(item.internal_priority);
+                const matchesTag = tagIds.length === 0 || (item.tags && item.tags.some(t => tagIds.includes(String(t.id))));
 
                 return matchesSearch && matchesStatus && matchesPriority && matchesTag;
             });

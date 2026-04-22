@@ -6,7 +6,6 @@ if __name__ == "__main__":
     # Ensure current directory is the project root
     print("Avvio di IcebergPM...")
     print("Accedi a http://localhost:8000")
-    print("Admin iniziale: admin / admin123")
     
     # Disable reload in frozen mode
     is_frozen = getattr(sys, 'frozen', False)

@@ -34,10 +34,11 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 - **Descrizione**: `onclick="loadProjectDetail(${p.id}, '${p.name}')"` — se `p.name` contiene un apostrofo (es. `Progetto dell'anno`), l'attributo HTML si rompe causando un errore JavaScript.
 - **Impatto**: **Medio** — Crash del click su progetti con nomi contenenti apici.
 
-### [B-06] Il campo Tag nel client.html non è funzionale
-- **File**: `frontend/client.html` (riga 122, 289)
-- **Descrizione**: Il form del client ha un campo testo `itemTag` che viene letto come `item.tag` (proprietà inesistente) e non è mai inviato al backend. Il backend si aspetta `tag_ids` (array di interi), mentre il frontend client non lo manda mai. Il sistema di tag multi-selezionabili è implementato solo nella dashboard admin.
-- **Impatto**: **Basso** — Feature non funzionante nel frontend client.
+### [B-06] ~~Il campo Tag nel client.html non è funzionale~~ ✅ RISOLTO
+- **File**: `frontend/client.html`
+- **Descrizione**: ~~Il form del client aveva un campo testo `itemTag` che leggeva `item.tag` (proprietà inesistente) e non inviava mai `tag_ids` al backend.~~
+- **Risoluzione**: Sostituito il campo testo con il sistema multi-tag a checkbox (identico alla dashboard). Aggiunta `loadTagsForSelection()`, tag caricati all'apertura del modal, `tag_ids` inviato nel payload.
+- **Impatto**: ~~Basso~~ → Risolto
 
 ### [B-07] Eliminazione tag non protetta da errori di integrità
 - **File**: `backend/app/routers/tags.py` (righe 34-49)
@@ -82,11 +83,11 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 - **Remediation**: Adottare **Alembic** per migrazioni versionabili e tracciabili.
 - **Priorità**: Alta
 
-### [D-06] Mancanza di gestione errori globale nel backend
+### [D-06] ~~Mancanza di gestione errori globale nel backend~~ ✅ RISOLTO
 - **File**: `backend/app/main.py`
-- **Descrizione**: Non esiste un exception handler globale per `Exception`, `SQLAlchemyError` o `ValidationError`. Errori non catturati producono risposte 500 in formato HTML (stacktrace di Starlette), che il frontend non sa parsare. Corrisponde a **[I-34]** e **[A-11]** nei documenti correlati.
-- **Remediation**: Aggiungere `@app.exception_handler(Exception)` per restituire sempre JSON.
-- **Priorità**: **Critica**
+- **Descrizione**: ~~Non esiste un exception handler globale per `Exception`, `SQLAlchemyError` o `ValidationError`. Errori non catturati producono risposte 500 in formato HTML (stacktrace di Starlette), che il frontend non sa parsare.~~ Corrisponde a **[I-34]** e **[A-11]** nei documenti correlati.
+- **Risoluzione**: Aggiunti 3 exception handler globali: `SQLAlchemyError` → 500 JSON, `ValidationError` → 422 JSON, `Exception` → 500 JSON catch-all.
+- **Priorità**: ~~Critica~~ → Risolto
 
 ### [D-07] `declarative_base()` deprecato
 - **File**: `backend/app/database.py` (riga 29)
@@ -100,11 +101,11 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 - **Remediation**: Usare `lifespan` context manager di FastAPI.
 - **Priorità**: Bassa
 
-### [D-09] Dipendenze non pinnate in requirements.txt
+### [D-09] ~~Dipendenze non pinnate in requirements.txt~~ ✅ RISOLTO
 - **File**: `backend/requirements.txt`
-- **Descrizione**: Nessuna dipendenza ha un vincolo di versione (es. `fastapi[all]` senza `==x.y.z`). Ogni `pip install` potrebbe portare a versioni diverse e incompatibili.
-- **Remediation**: Pinnare le versioni esatte (o usare `pip freeze > requirements.txt` dopo aver verificato la compatibilità). Alternativamente, adottare `pyproject.toml` con `pip-tools` o `uv`.
-- **Priorità**: Alta
+- **Descrizione**: ~~Nessuna dipendenza ha un vincolo di versione. Ogni `pip install` potrebbe portare a versioni diverse e incompatibili.~~
+- **Risoluzione**: Tutte le dipendenze pinnate alle versioni esatte installate (es. `fastapi[all]==0.110.0`, `sqlalchemy==2.0.29`, ecc.).
+- **Priorità**: ~~Alta~~ → Risolto
 
 ### [D-10] Nessuna validazione di input avanzata sugli schema Pydantic
 - **File**: `backend/app/schemas/schemas.py`
@@ -180,13 +181,13 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 | Priorità | ID | Tipo | Titolo breve |
 |---|---|---|---|
 | 🔴 Critica | D-04 | Debito | Nessun test |
-| 🔴 Critica | D-06 | Debito | Nessun error handler globale |
+| ✅ Risolto | D-06 | Debito | ~~Nessun error handler globale~~ |
 | 🟠 Alta | B-02 | Bug | Export DB non funzionante |
 | 🟠 Alta | B-04 | Bug | XSS stored |
 | 🟠 Alta | D-01 | Debito | Frontend monolitico |
 | 🟠 Alta | D-03 | Debito | Duplicazione codice frontend |
 | 🟠 Alta | D-05 | Debito | Migrazioni non strutturate |
-| 🟠 Alta | D-09 | Debito | Dipendenze non pinnate |
+| ✅ Risolto | D-09 | Debito | ~~Dipendenze non pinnate~~ |
 | 🟠 Alta | D-11 | Debito | Mancano policy ondelete |
 | 🟡 Medio | B-01 | Bug | datetime.utcnow deprecato |
 | 🟡 Medio | B-03 | Bug | auth.fetch() undefined |
@@ -200,7 +201,7 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 | 🟡 Medio | D-16 | Debito | Nessun logging |
 | 🟡 Medio | D-17 | Debito | Commit audit separato |
 | 🟠 Alta | D-19 | Debito | Credenziali DB esposte via .env/API |
-| 🟢 Basso | B-06 | Bug | Campo tag client non funzionale |
+| ✅ Risolto | B-06 | Bug | ~~Campo tag client non funzionale~~ |
 | 🟢 Basso | B-08 | Bug | INTERNAL vede pulsante Sistema |
 | 🟢 Basso | D-07 | Debito | declarative_base deprecato |
 | 🟢 Basso | D-08 | Debito | on_event deprecato |

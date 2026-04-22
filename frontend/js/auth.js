@@ -11,7 +11,10 @@ const auth = {
             body: formData
         });
 
-        if (!response.ok) throw new Error('Login failed');
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || 'Login failed');
+        }
 
         const data = await response.json();
         localStorage.setItem('token', data.access_token);

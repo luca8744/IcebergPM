@@ -117,9 +117,11 @@
                         <label>ID Univoco</label>
                         <input type="text" id="itemUniqueId" readonly style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="grid-column: span 2;">
                         <label>Tag</label>
-                        <input type="text" id="itemTag">
+                        <div id="itemTagsContainer" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; min-height: 45px; background: rgba(0,0,0,0.2);">
+                            <!-- Caricati via JS -->
+                        </div>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
@@ -271,6 +273,7 @@
             document.getElementById('itemSubmitBtn').textContent = 'Crea';
             document.getElementById('itemStatus').value = 'OPEN';
             document.getElementById('itemUniqueId').value = 'Auto-generato';
+            loadTagsForSelection([]);
             document.getElementById('itemModal').style.display = 'flex';
         }
 
@@ -286,11 +289,11 @@
             
             document.getElementById('itemExternalId').value = item.external_id || '';
             document.getElementById('itemUniqueId').value = item.unique_id || '';
-            document.getElementById('itemTag').value = item.tag || '';
             document.getElementById('itemHlr').value = item.hlr || '';
             document.getElementById('itemSrs').value = item.srs || '';
             document.getElementById('itemTp').value = item.tp || '';
             
+            loadTagsForSelection(item.tags ? item.tags.map(t => t.id) : []);
             document.getElementById('itemModal').style.display = 'flex';
         }
 
@@ -309,7 +312,8 @@
                     srs: document.getElementById('itemSrs').value,
                     tp: document.getElementById('itemTp').value,
                     external_id: document.getElementById('itemExternalId').value,
-                    project_id: currentProjectId
+                    project_id: currentProjectId,
+                    tag_ids: Array.from(document.querySelectorAll('input[name="itemTags"]:checked')).map(i => parseInt(i.value))
                 };
 
                 const url = editingItemId ? `/items/${editingItemId}` : '/items/';
@@ -333,6 +337,28 @@
                 alert("Errore imprevisto: " + err.message);
             }
         });
+
+        async function loadTagsForSelection(selectedIds = []) {
+            try {
+                const res = await auth.fetch('/tags/');
+                const tags = await res.json();
+                const container = document.getElementById('itemTagsContainer');
+                
+                if (tags.length === 0) {
+                    container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-secondary);">Nessun tag disponibile.</span>';
+                    return;
+                }
+
+                container.innerHTML = tags.map(t => `
+                    <label style="display:flex; align-items:center; gap:4px; background:${t.color}; padding:2px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer; color:white;">
+                        <input type="checkbox" name="itemTags" value="${t.id}" ${selectedIds.includes(t.id) ? 'checked' : ''}>
+                        ${t.name}
+                    </label>
+                `).join('');
+            } catch (err) {
+                console.error("Errore caricamento tag:", err);
+            }
+        }
 
         loadProjects();
     </script>

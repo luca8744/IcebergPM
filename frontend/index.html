@@ -50,7 +50,7 @@
                     window.location.href = 'dashboard.html';
                 }
             } catch (err) {
-                errorMessage.textContent = 'Credenziali non valide';
+                errorMessage.textContent = err.message || 'Credenziali non valide';
                 errorMessage.style.display = 'block';
             }
         });
