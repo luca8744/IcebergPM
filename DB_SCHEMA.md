@@ -45,6 +45,9 @@ erDiagram
         string tp "Test Plan"
         string external_id
         string unique_id
+        string rev_finding
+        string rev_released
+        string submodule
     }
 
     TAG {

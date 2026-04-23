@@ -64,6 +64,9 @@ class ItemBase(BaseModel):
     tp: Optional[str] = None
     external_id: Optional[str] = None
     unique_id: Optional[str] = None
+    rev_finding: Optional[str] = None
+    rev_released: Optional[str] = None
+    submodule: Optional[str] = None
     is_private: bool = False
 
 class ItemCreate(ItemBase):
@@ -84,6 +87,9 @@ class ItemUpdate(BaseModel):
     tp: Optional[str] = None
     external_id: Optional[str] = None
     unique_id: Optional[str] = None
+    rev_finding: Optional[str] = None
+    rev_released: Optional[str] = None
+    submodule: Optional[str] = None
     is_private: Optional[bool] = None
 
 # Public view for Client

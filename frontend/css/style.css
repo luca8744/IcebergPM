@@ -187,7 +187,6 @@ header {
 .status-OPEN { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
 .status-IN_PROGRESS { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 .status-DONE { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-.status-CLOSED { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
 
 /* Filter Bar styles */
 .filter-bar {

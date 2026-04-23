@@ -13,7 +13,6 @@ class ItemStatus(str, enum.Enum):
     OPEN = "OPEN"
     IN_PROGRESS = "IN_PROGRESS"
     DONE = "DONE"
-    CLOSED = "CLOSED"
 
 class ItemPriority(str, enum.Enum):
     LOW = "LOW"
@@ -101,6 +100,9 @@ class Item(Base):
     tp = Column(Text, nullable=True)
     external_id = Column(String, nullable=True)
     unique_id = Column(String, nullable=True)
+    rev_finding = Column(String, nullable=True)
+    rev_released = Column(String, nullable=True)
+    submodule = Column(String, nullable=True)
 
     project = relationship("Project", back_populates="items")
     tags = relationship("Tag", secondary=item_tags, back_populates="items")

@@ -246,7 +246,6 @@
                                 <label><input type="checkbox" value="OPEN" onchange="applyFilters()"><span class="ms-dot" style="background:#38bdf8;"></span> Aperto</label>
                                 <label><input type="checkbox" value="IN_PROGRESS" onchange="applyFilters()"><span class="ms-dot" style="background:#f59e0b;"></span> In Corso</label>
                                 <label><input type="checkbox" value="DONE" onchange="applyFilters()"><span class="ms-dot" style="background:#10b981;"></span> Completato</label>
-                                <label><input type="checkbox" value="CLOSED" onchange="applyFilters()"><span class="ms-dot" style="background:#94a3b8;"></span> Chiuso</label>
                             </div>
                         </div>
                         <div class="multi-select" id="filterPriorityMs">
@@ -477,7 +476,6 @@
                             <option value="OPEN">Aperto</option>
                             <option value="IN_PROGRESS">In Corso</option>
                             <option value="DONE">Completato</option>
-                            <option value="CLOSED">Chiuso</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -527,6 +525,20 @@
                     <div class="form-group">
                         <label>TP</label>
                         <input type="text" id="itemTp">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Rev Finding</label>
+                        <input type="text" id="itemRevFinding">
+                    </div>
+                    <div class="form-group">
+                        <label>Rev Released</label>
+                        <input type="text" id="itemRevReleased">
+                    </div>
+                    <div class="form-group">
+                        <label>Sottomodulo</label>
+                        <input type="text" id="itemSubmodule">
                     </div>
                 </div>
                 <div class="form-group">
@@ -734,7 +746,8 @@
                             <span class="badge-tag" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa;"># ${item.unique_id || '---'}</span>
                             ${item.external_id ? `<span class="badge-tag" style="background: rgba(56, 189, 248, 0.1); color: var(--accent-color);">EXT: ${item.external_id}</span>` : ''}
                             <span class="badge-tag" style="background: ${getPriorityColor(item.internal_priority)}; color: white; opacity: 0.8;">PR: ${item.internal_priority || 'MEDIUM'}</span>
-                            ${item.tags.map(t => `<span class="badge-tag" style="background: ${t.color}; color: white;">${t.name}</span>`).join('')}
+                            ${item.submodule ? `<span class="badge-tag" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-secondary);">SUB: ${item.submodule}</span>` : ''}
+                            ${item.tags ? item.tags.map(t => `<span class="badge-tag" style="background: ${t.color}; color: white;">${t.name}</span>`).join('') : ''}
                             ${item.is_private ? `<span class="badge-tag" style="background: #ef4444; color: white;">🔒 PRIVATO</span>` : ''}
                         </div>
                         <div style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4;">${item.description || 'Nessuna descrizione'}</div>
@@ -744,6 +757,9 @@
                             ${item.hlr ? `<span><strong>HLR:</strong> <span style="color: var(--text-main);">${item.hlr}</span></span>` : ''}
                             ${item.srs ? `<span><strong>SRS:</strong> <span style="color: var(--text-main);">${item.srs}</span></span>` : ''}
                             ${item.tp ? `<span><strong>TP:</strong> <span style="color: var(--text-main);">${item.tp}</span></span>` : ''}
+                            ${item.rev_finding ? `<span><strong>Rev Found:</strong> <span style="color: var(--text-main);">${item.rev_finding}</span></span>` : ''}
+                            ${item.rev_released ? `<span><strong>Rev Rel:</strong> <span style="color: var(--text-main);">${item.rev_released}</span></span>` : ''}
+                            ${item.submodule ? `<span><strong>Submod:</strong> <span style="color: var(--text-main);">${item.submodule}</span></span>` : ''}
                         </div>
                         ${item.internal_notes ? `<div style="font-size: 0.75rem; color: #a78bfa; margin-top: 8px; font-style: italic;"><strong>Note private:</strong> ${item.internal_notes}</div>` : ''}
                     </div>
@@ -822,6 +838,9 @@
             document.getElementById('itemHlr').value = item.hlr || '';
             document.getElementById('itemSrs').value = item.srs || '';
             document.getElementById('itemTp').value = item.tp || '';
+            document.getElementById('itemRevFinding').value = item.rev_finding || '';
+            document.getElementById('itemRevReleased').value = item.rev_released || '';
+            document.getElementById('itemSubmodule').value = item.submodule || '';
             document.getElementById('itemIsPrivate').checked = item.is_private || false;
 
             if (user.role !== 'CLIENT') {
@@ -933,6 +952,9 @@
                     hlr: document.getElementById('itemHlr').value,
                     srs: document.getElementById('itemSrs').value,
                     tp: document.getElementById('itemTp').value,
+                    rev_finding: document.getElementById('itemRevFinding').value,
+                    rev_released: document.getElementById('itemRevReleased').value,
+                    submodule: document.getElementById('itemSubmodule').value,
                     external_id: document.getElementById('itemExternalId').value,
                     project_id: currentProjectId,
                     is_private: document.getElementById('itemIsPrivate').checked,

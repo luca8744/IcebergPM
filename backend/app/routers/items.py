@@ -90,7 +90,8 @@ async def update_item(
         # CLIENT can only update status, description and new fields (except ID) - FILTER the rest
         update_data = item_update.model_dump(exclude_unset=True)
         allowed_client_fields = [
-            "status", "description", "tag_ids", "hlr", "srs", "tp", "external_id"
+            "status", "description", "tag_ids", "hlr", "srs", "tp", "external_id",
+            "rev_finding", "rev_released", "submodule"
         ]
         update_data = {k: v for k, v in update_data.items() if k in allowed_client_fields}
     
