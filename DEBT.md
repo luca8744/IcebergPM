@@ -107,11 +107,11 @@ Questo documento censisce i bug noti, i debiti tecnici e le fragilità architett
 - **Risoluzione**: Tutte le dipendenze pinnate alle versioni esatte installate (es. `fastapi[all]==0.110.0`, `sqlalchemy==2.0.29`, ecc.).
 - **Priorità**: ~~Alta~~ → Risolto
 
-### [D-10] Nessuna validazione di input avanzata sugli schema Pydantic
+### [D-10] ~~Nessuna validazione di input avanzata sugli schema Pydantic~~ ✅ RISOLTO
 - **File**: `backend/app/schemas/schemas.py`
-- **Descrizione**: I campi `username` e `password` in `UserCreate` sono semplici `str` senza vincoli di lunghezza minima/massima, regex per caratteri ammessi, o complessità password. Un utente può creare un account con username vuoto (`""`) o password di un solo carattere.
-- **Remediation**: Aggiungere `Field(min_length=..., max_length=..., pattern=...)` ai campi sensibili.
-- **Priorità**: Media
+- **Descrizione**: ~~I campi `username` e `password` in `UserCreate` sono semplici `str` senza vincoli di lunghezza minima/massima, regex per caratteri ammessi, o complessità password. Un utente può creare un account con username vuoto (`""`) o password di un solo carattere.~~
+- **Risoluzione**: Aggiunti vincoli `Field(min_length=..., max_length=..., pattern=...)` a `username`, `password`, `title` dei task, nomi dei progetti e nomi dei clienti.
+- **Priorità**: ~~Media~~ → Risolto
 
 ### [D-11] Mancano le policy `ondelete` sulle ForeignKey
 - **File**: `backend/app/models/models.py`

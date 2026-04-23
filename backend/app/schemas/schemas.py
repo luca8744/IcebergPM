@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from typing import Optional, List
 from ..models.models import UserRole, ItemStatus, ItemPriority
@@ -17,8 +17,8 @@ class TagResponse(TagBase):
 
 # --- Client Schemas ---
 class ClientBase(BaseModel):
-    name: str
-    description: Optional[str] = None
+    name: str = Field(..., min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
 
 class ClientCreate(ClientBase):
     pass
@@ -30,12 +30,12 @@ class ClientResponse(ClientBase):
 
 # --- User Schemas ---
 class UserBase(BaseModel):
-    username: str
+    username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     role: UserRole
     client_id: Optional[int] = None
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=8, max_length=100)
 
 class UserResponse(UserBase):
     id: int
@@ -56,8 +56,8 @@ class TokenData(BaseModel):
 
 # --- Item Schemas ---
 class ItemBase(BaseModel):
-    title: str
-    description: Optional[str] = None
+    title: str = Field(..., min_length=3, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
     status: ItemStatus = ItemStatus.OPEN
     hlr: Optional[str] = None
     srs: Optional[str] = None
@@ -110,8 +110,8 @@ class ItemInternal(ItemPublic):
 
 # --- Project Schemas ---
 class ProjectBase(BaseModel):
-    name: str
-    description: Optional[str] = None
+    name: str = Field(..., min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
 
 class ProjectCreate(ProjectBase):
     client_id: int
