@@ -40,8 +40,8 @@ async def create_item(
     if not db_item.unique_id:
         db_item.unique_id = str(db_item.id)
     
-    # Se creato già DONE/CLOSED
-    if db_item.status in [models.ItemStatus.DONE, models.ItemStatus.CLOSED]:
+    # Se creato già DONE
+    if db_item.status == models.ItemStatus.DONE:
         db_item.completed_at = datetime.utcnow()
         
     db.commit()
@@ -116,7 +116,7 @@ async def update_item(
     
     # Gestione completed_at
     if "status" in update_data:
-        if update_data["status"] in [models.ItemStatus.DONE, models.ItemStatus.CLOSED]:
+        if update_data["status"] == models.ItemStatus.DONE:
             if not db_item.completed_at:
                 db_item.completed_at = datetime.utcnow()
         else:
