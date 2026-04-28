@@ -17,7 +17,12 @@
             justify-content: center; align-items: center;
             z-index: 1000;
         }
-        .modal-content { max-width: 500px; width: 90%; }
+        .modal-content { 
+            max-width: 500px; 
+            width: 90%; 
+            max-height: 90vh;
+            overflow-y: auto;
+        }
         .badge-internal { background: rgba(139, 92, 246, 0.2); color: #a78bfa; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px;}
         .badge-tag {
             font-size: 0.65rem;
@@ -167,7 +172,10 @@
 
         <div id="projectDetail" style="display: none; margin-top: 3rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2 id="currentProjectTitle">Dettagli Progetto</h2>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h2 id="currentProjectTitle" style="margin: 0;">Dettagli Progetto</h2>
+                    <span id="filteredCountBadge" class="status-badge" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa; display: none; font-size: 0.9rem; padding: 4px 10px;">0 Task</span>
+                </div>
                 <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task</button>
             </div>
 
@@ -214,6 +222,20 @@
                             <!-- Populated via JS -->
                         </div>
                     </div>
+                    <div class="multi-select" id="filterSubmoduleMs">
+                        <div class="multi-select-toggle" onclick="toggleMultiSelect('filterSubmoduleMs')">
+                            <span class="ms-label">Sottomodulo</span>
+                            <span class="ms-count" style="display:none;">0</span>
+                            <span class="ms-arrow"></span>
+                        </div>
+                        <div class="multi-select-dropdown" id="filterSubmoduleDropdown">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" id="sortDateBtn" onclick="toggleSort()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10"></path><path d="M11 9h7"></path><path d="M11 13h4"></path><path d="M3 17l3 3 3-3"></path><path d="M6 18V4"></path></svg>
+                        <span id="sortLabel">Data (Recenti)</span>
+                    </button>
                     <button class="btn-icon-clear" onclick="resetFilters()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                         Reset
@@ -317,6 +339,13 @@
         let currentProjectId = null;
         let currentProjectItems = [];
         let editingItemId = null;
+        let currentSort = 'desc';
+
+        function toggleSort() {
+            currentSort = currentSort === 'desc' ? 'asc' : 'desc';
+            document.getElementById('sortLabel').textContent = currentSort === 'desc' ? 'Data (Recenti)' : 'Data (Meno recenti)';
+            applyFilters();
+        }
 
         function getPriorityColor(p) {
             switch(p) {
@@ -365,7 +394,23 @@
                 ).join('') || '<span style="padding: 0.5rem 0.9rem; font-size: 0.8rem; color: var(--text-secondary);">Nessun tag</span>';
             }
 
-            renderItems(currentProjectItems);
+            // Popola il filtro sottomoduli
+            const uniqueSubmodules = new Set();
+            currentProjectItems.forEach(item => {
+                if (item.submodule) uniqueSubmodules.add(item.submodule);
+            });
+            const subDropdown = document.getElementById('filterSubmoduleDropdown');
+            if (subDropdown) {
+                if (uniqueSubmodules.size > 0) {
+                    subDropdown.innerHTML = Array.from(uniqueSubmodules).sort().map(sub => 
+                        `<label><input type="checkbox" value="${sub}" onchange="applyFilters()"><span class="ms-dot" style="background:#8b5cf6;"></span> ${sub}</label>`
+                    ).join('');
+                } else {
+                    subDropdown.innerHTML = '<span style="padding: 0.5rem 0.9rem; font-size: 0.8rem; color: var(--text-secondary);">Nessun sottomodulo</span>';
+                }
+            }
+
+            applyFilters();
             document.getElementById('projectDetail').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -417,10 +462,12 @@
             const statuses = getMultiSelectValues('filterStatusMs');
             const priorities = getMultiSelectValues('filterPriorityMs');
             const tagIds = getMultiSelectValues('filterTagMs');
+            const submodules = getMultiSelectValues('filterSubmoduleMs');
 
             updateMultiSelectCount('filterStatusMs');
             updateMultiSelectCount('filterPriorityMs');
             updateMultiSelectCount('filterTagMs');
+            updateMultiSelectCount('filterSubmoduleMs');
 
             const filtered = currentProjectItems.filter(item => {
                 const queryTitle = (item.title || '').toLowerCase();
@@ -435,9 +482,22 @@
                 const matchesStatus = statuses.length === 0 || statuses.includes(item.status);
                 const matchesPriority = priorities.length === 0 || priorities.includes(item.internal_priority);
                 const matchesTag = tagIds.length === 0 || (item.tags && item.tags.some(t => tagIds.includes(String(t.id))));
+                const matchesSubmodule = submodules.length === 0 || (item.submodule && submodules.includes(item.submodule));
 
-                return matchesSearch && matchesStatus && matchesPriority && matchesTag;
+                return matchesSearch && matchesStatus && matchesPriority && matchesTag && matchesSubmodule;
             });
+
+            filtered.sort((a, b) => {
+                const dateA = new Date(a.created_at).getTime();
+                const dateB = new Date(b.created_at).getTime();
+                return currentSort === 'desc' ? dateB - dateA : dateA - dateB;
+            });
+
+            const badge = document.getElementById('filteredCountBadge');
+            if (badge) {
+                badge.textContent = filtered.length + (filtered.length === 1 ? ' Task trovato' : ' Task trovati');
+                badge.style.display = 'inline-block';
+            }
 
             renderItems(filtered);
         }
