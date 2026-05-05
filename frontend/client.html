@@ -176,7 +176,13 @@
                     <h2 id="currentProjectTitle" style="margin: 0;">Dettagli Progetto</h2>
                     <span id="filteredCountBadge" class="status-badge" style="background: rgba(167, 139, 250, 0.1); color: #a78bfa; display: none; font-size: 0.9rem; padding: 4px 10px;">0 Task</span>
                 </div>
-                <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task</button>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button class="btn btn-secondary" id="exportCsvBtn" onclick="exportItemsToCSV()" title="Esporta i task visibili in CSV" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Esporta CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="showNewItemModal()">Aggiungi Task</button>
+                </div>
             </div>
 
             <!-- Barra di Ricerca e Filtri -->
@@ -338,6 +344,7 @@
 
         let currentProjectId = null;
         let currentProjectItems = [];
+        let currentFilteredItems = [];
         let editingItemId = null;
         let currentSort = 'desc';
 
@@ -493,6 +500,8 @@
                 return currentSort === 'desc' ? dateB - dateA : dateA - dateB;
             });
 
+            currentFilteredItems = filtered;
+
             const badge = document.getElementById('filteredCountBadge');
             if (badge) {
                 badge.textContent = filtered.length + (filtered.length === 1 ? ' Task trovato' : ' Task trovati');
@@ -500,6 +509,64 @@
             }
 
             renderItems(filtered);
+        }
+
+        function exportItemsToCSV() {
+            if (!currentFilteredItems || currentFilteredItems.length === 0) {
+                alert('Nessun task da esportare. Assicurati di avere un progetto aperto.');
+                return;
+            }
+
+            const csvEscape = (val) => {
+                if (val === null || val === undefined) return '';
+                const s = String(val);
+                if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+                    return '"' + s.replace(/"/g, '""') + '"';
+                }
+                return s;
+            };
+
+            const headers = [
+                'ID', 'Unique ID', 'External ID', 'Titolo', 'Stato',
+                'Sottomodulo', 'Tag',
+                'HLR', 'SRS', 'TP', 'Rev Finding', 'Rev Released',
+                'Descrizione',
+                'Creato', 'Completato'
+            ];
+
+            const rows = currentFilteredItems.map(item => [
+                csvEscape(item.id),
+                csvEscape(item.unique_id),
+                csvEscape(item.external_id),
+                csvEscape(item.title),
+                csvEscape(item.status),
+                csvEscape(item.submodule),
+                csvEscape((item.tags || []).map(t => t.name).join('; ')),
+                csvEscape(item.hlr),
+                csvEscape(item.srs),
+                csvEscape(item.tp),
+                csvEscape(item.rev_finding),
+                csvEscape(item.rev_released),
+                csvEscape(item.description),
+                csvEscape(item.created_at ? new Date(item.created_at).toLocaleString('it-IT') : ''),
+                csvEscape(item.completed_at ? new Date(item.completed_at).toLocaleString('it-IT') : '')
+            ].join(','));
+
+            const csvContent = [headers.join(','), ...rows].join('\n');
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            const projectName = document.getElementById('currentProjectTitle').textContent.replace(/[^a-zA-Z0-9_\-]/g, '_');
+            const date = new Date().toISOString().slice(0, 10);
+            const filename = `${projectName}_task_${date}.csv`;
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function renderItems(items) {
