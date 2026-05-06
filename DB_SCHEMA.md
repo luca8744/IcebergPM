@@ -10,6 +10,8 @@ erDiagram
     USER ||--o{ AUDIT_LOG : "performs"
     PROJECT ||--o{ ITEM : "contains"
     ITEM }|--|{ TAG : "labeled with"
+    ITEM ||--o{ ITEM_NOTE : "has notes"
+    USER ||--o{ ITEM_NOTE : "writes"
     
     USER {
         int id PK
@@ -56,6 +58,14 @@ erDiagram
         string color
     }
 
+    ITEM_NOTE {
+        int id PK
+        int item_id FK
+        int user_id FK
+        string content
+        datetime created_at
+    }
+
     AUDIT_LOG {
         int id PK
         datetime timestamp
@@ -86,6 +96,9 @@ L'entità centrale dell'applicazione. Supporta:
 
 ### 🏷️ Tags
 Etichette colorate che possono essere applicate a più Item per facilitare il filtraggio. La relazione è molti-a-molti tramite la tabella `item_tags`.
+
+### 💬 Item Notes
+Conversazioni e annotazioni relative a un task. Permettono la tracciabilità degli aggiornamenti con l'indicazione dell'autore e dell'orario di inserimento.
 
 ### 🛡️ Audit Logs
 Registro immutabile di tutte le operazioni critiche (creazione, modifica, eliminazione) per garantire la sicurezza e la tracciabilità delle modifiche.

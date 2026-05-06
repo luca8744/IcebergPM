@@ -10,7 +10,7 @@ import traceback
 
 from .database import engine, Base, get_db
 from .models import models
-from .routers import auth, projects, items, admin, tags
+from .routers import auth, projects, items, admin, tags, notes
 from .core.security import get_password_hash
 
 from .version import APP_VERSION
@@ -66,6 +66,7 @@ app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(items.router, prefix="/api/items", tags=["Items"])
 app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(admin.router, prefix="/api/admin", tags=["System Management"])
+app.include_router(notes.router, prefix="/api", tags=["Notes"])
 
 @app.get("/api/version")
 async def get_version():

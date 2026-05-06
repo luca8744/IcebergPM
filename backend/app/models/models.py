@@ -106,6 +106,7 @@ class Item(Base):
 
     project = relationship("Project", back_populates="items")
     tags = relationship("Tag", secondary=item_tags, back_populates="items")
+    notes = relationship("ItemNote", back_populates="item", cascade="all, delete-orphan", order_by="asc(ItemNote.created_at)")
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -119,4 +120,16 @@ class AuditLog(Base):
     entity_id = Column(Integer, nullable=True)
     details = Column(Text, nullable=True)
 
+    user = relationship("User")
+
+class ItemNote(Base):
+    __tablename__ = "item_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("items.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    item = relationship("Item", back_populates="notes")
     user = relationship("User")

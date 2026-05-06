@@ -43,6 +43,12 @@ class UserResponse(UserBase):
     client: Optional[ClientResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
+class UserBasic(BaseModel):
+    id: int
+    username: str
+    role: UserRole
+    model_config = ConfigDict(from_attributes=True)
+
 # --- Token Schemas ---
 class Token(BaseModel):
     access_token: str
@@ -53,6 +59,21 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[UserRole] = None
+
+# --- Item Note Schemas ---
+class ItemNoteBase(BaseModel):
+    content: str = Field(..., min_length=1, max_length=5000)
+
+class ItemNoteCreate(ItemNoteBase):
+    pass
+
+class ItemNoteResponse(ItemNoteBase):
+    id: int
+    item_id: int
+    user_id: Optional[int]
+    created_at: datetime
+    user: Optional[UserBasic] = None
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Item Schemas ---
 class ItemBase(BaseModel):
@@ -98,6 +119,7 @@ class ItemPublic(ItemBase):
     project_id: int
     internal_priority: Optional[ItemPriority] = ItemPriority.MEDIUM
     tags: List[TagResponse] = []
+    notes: List[ItemNoteResponse] = []
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
