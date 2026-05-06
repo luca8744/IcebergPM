@@ -26,13 +26,24 @@ async def create_item(
         raise HTTPException(status_code=403, detail="Not authorized")
     
     tag_ids = item.tag_ids
-    db_item = models.Item(**item.model_dump(exclude={"tag_ids"}))
+    item_data = item.model_dump(exclude={"tag_ids", "internal_notes"})
+    db_item = models.Item(**item_data)
     if tag_ids:
         db_item.tags = db.query(models.Tag).filter(models.Tag.id.in_(tag_ids)).all()
     
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+    
+    # Create note if internal_notes is provided
+    if item.internal_notes:
+        db_note = models.ItemNote(
+            item_id=db_item.id,
+            user_id=current_user.id,
+            content=item.internal_notes
+        )
+        db.add(db_note)
+        db.commit()
     
     log_action(db, current_user.id, current_user.username, "CREATE", "ITEM", db_item.id, f"Item: {db_item.title}")
     
@@ -70,7 +81,7 @@ async def read_item(
     
     return schemas.ItemPublic.model_validate(db_item)
 
-@router.patch("/{item_id}")
+@router.patch("/{item_id}", response_model=schemas.ItemInternal)
 async def update_item(
     item_id: int,
     item_update: schemas.ItemUpdate,
@@ -104,6 +115,9 @@ async def update_item(
         if "unique_id" in update_data:
             del update_data["unique_id"]
 
+    # Extract internal_notes to create a new note
+    internal_notes = update_data.pop("internal_notes", None)
+
     # Handle tag updates separately
     if "tag_ids" in update_data:
         tag_ids = update_data.pop("tag_ids")
@@ -124,6 +138,16 @@ async def update_item(
 
     db.commit()
     db.refresh(db_item)
+    
+    # Create note if internal_notes is provided
+    if internal_notes:
+        db_note = models.ItemNote(
+            item_id=db_item.id,
+            user_id=current_user.id,
+            content=internal_notes
+        )
+        db.add(db_note)
+        db.commit()
     
     log_action(db, current_user.id, current_user.username, "UPDATE", "ITEM", db_item.id, f"Updated: {db_item.title}")
     
